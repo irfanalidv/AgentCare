@@ -148,7 +148,7 @@
           <div class="controls">
             <div>
               <label>Phone Number (E.164)</label>
-              <input id="callPhone" placeholder="+14155552671" />
+              <input id="callPhone" type="password" autocomplete="off" placeholder="+14155552671" />
             </div>
             <div>
               <label>Customer Name (optional)</label>
@@ -157,6 +157,12 @@
             <div>
               <button id="callNowBtn">Call Now</button>
             </div>
+          </div>
+          <div class="muted" style="margin-top: 6px;">
+            <label style="display: inline-flex; gap: 6px; align-items: center; margin: 0;">
+              <input id="privacyMode" type="checkbox" checked />
+              Privacy mode for recording (mask phone/email on screen)
+            </label>
           </div>
           <div class="muted" style="margin-top: 8px;" id="callStatus">Ready</div>
           <div class="muted" style="margin-top: 4px;" id="callLifecycle">lifecycle: -</div>
@@ -345,19 +351,35 @@
       const dashboardApiBase = "";
       let latestAppointmentsByExec = {};
       let latestCasesByExec = {};
+      let cachedAppointmentRows = [];
+      let refreshingCases = false;
+      let refreshingExecutions = false;
+      let refreshingAppointments = false;
+      let refreshingWorkflow = false;
 
-      async function fetchJson(path, extraParams) {
+      async function fetchJson(path, extraParams, timeoutMs = 12000) {
         const base = "http://localhost:8040";
         const params = new URLSearchParams();
         if (extraParams) for (const [k, v] of Object.entries(extraParams)) params.set(k, v);
         const url = `${base}${path}${params.toString() ? `?${params}` : ""}`;
-        const res = await fetch(url);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        let res;
+        try {
+          res = await fetch(url, { signal: controller.signal });
+        } catch (e) {
+          if (e && e.name === "AbortError") {
+            throw new Error(`request timeout after ${Math.round(timeoutMs / 1000)}s`);
+          }
+          throw e;
+        } finally {
+          clearTimeout(timer);
+        }
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         return res.json();
       }
 
-      async function fetchDashboardJson(path, options) {
-        const timeoutMs = 12000;
+      async function fetchDashboardJson(path, options, timeoutMs = 20000) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         const merged = { ...(options || {}), signal: controller.signal };
@@ -397,6 +419,54 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#39;");
+      }
+
+      function isPrivacyMode() {
+        const toggle = el("privacyMode");
+        return toggle ? toggle.checked : true;
+      }
+
+      function maskPhone(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "-";
+        const digits = raw.replaceAll(/\D/g, "");
+        if (!digits) return "***";
+        if (digits.length <= 4) return `***${digits.slice(-2)}`;
+        return `*** *** ${digits.slice(-2)}`;
+      }
+
+      function maskEmail(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "-";
+        const at = raw.indexOf("@");
+        if (at <= 0) return "***";
+        const local = raw.slice(0, at);
+        const domain = raw.slice(at + 1);
+        const safeLocal = `${local.slice(0, 1)}***`;
+        const domainParts = domain.split(".");
+        const root = domainParts[0] || "";
+        const tld = domainParts.length > 1 ? domainParts.slice(1).join(".") : "";
+        const safeDomain = `${root.slice(0, 1)}***${tld ? `.${tld}` : ""}`;
+        return `${safeLocal}@${safeDomain}`;
+      }
+
+      function redactPII(text) {
+        const raw = String(text || "");
+        if (!isPrivacyMode()) return raw;
+        const redactedEmails = raw.replaceAll(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, (email) => maskEmail(email));
+        return redactedEmails.replaceAll(/\+?[1-9][\d\s-]{7,14}\d/g, (phone) => maskPhone(phone));
+      }
+
+      function visiblePhone(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "-";
+        return isPrivacyMode() ? maskPhone(raw) : raw;
+      }
+
+      function visibleEmail(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "-";
+        return isPrivacyMode() ? maskEmail(raw) : raw;
       }
 
       function formatStatusChip(status) {
@@ -480,7 +550,7 @@
           <tr class="clickable-row" data-exec="${r.execution_id || ""}">
             <td>${escapeHtml(r.execution_id || "-")}</td>
             <td>${formatStatusChip(r.status || "-")}</td>
-            <td>${escapeHtml(r.to_number || "-")}</td>
+            <td>${escapeHtml(visiblePhone(r.to_number || "-"))}</td>
             <td>${Number(r.conversation_time || 0).toFixed(1)}</td>
             <td>${Number(r.total_cost || 0).toFixed(3)}</td>
             <td>${escapeHtml(r.created_at || "-")}</td>
@@ -552,8 +622,8 @@
             <td>${formatStatusChip(r.status || "-")}</td>
             <td>${escapeHtml(r.patient_name || "-")}</td>
             <td>${escapeHtml(r.customer_segment || "-")}</td>
-            <td>${escapeHtml(r.patient_phone || "-")}</td>
-            <td>${escapeHtml(r.patient_email || r.email_to || "-")}</td>
+            <td>${escapeHtml(visiblePhone(r.patient_phone || "-"))}</td>
+            <td>${escapeHtml(visibleEmail(r.patient_email || r.email_to || "-"))}</td>
             <td>${formatSlot(r.slot_start)}</td>
             <td>${formatCalendarCell(r)}</td>
             <td>${formatEmailDeliveryCell(r)}</td>
@@ -575,7 +645,7 @@
         });
         body.innerHTML = rows.map((r) => `
           <tr class="clickable-row" data-exec="${r.last_execution_id || ""}">
-            <td>${escapeHtml(r.patient_name || "-")}<br/><span class="muted">${escapeHtml(r.patient_phone || "-")}</span></td>
+            <td>${escapeHtml(r.patient_name || "-")}<br/><span class="muted">${escapeHtml(visiblePhone(r.patient_phone || "-"))}</span></td>
             <td>${escapeHtml(r.customer_segment || "-")}</td>
             <td>${escapeHtml((r.care_category || "-").replaceAll("_"," "))}</td>
             <td class="${(r.risk_level || "low") === "high" ? "danger" : ((r.risk_level || "low") === "medium" ? "warn" : "ok")}">${r.risk_level || "-"}</td>
@@ -591,30 +661,49 @@
 
       async function renderCallDetail(executionId) {
         if (!executionId) return;
-        try {
-          const data = await fetchJson(`/analytics/calls/${encodeURIComponent(executionId)}`);
+        el("detailMeta").textContent = `execution: ${executionId} | loading detail...`;
+        el("detailPatientSummary").textContent = "Loading...";
+        el("detailOpsSummary").textContent = "Loading...";
+        const tryRenderFromAnalytics = async () => {
+          const data = await fetchDashboardJson(`/api/call/detail/${encodeURIComponent(executionId)}`, undefined, 12000);
           if (!data.ok || !data.row) throw new Error(data.error || "not_found");
           const row = data.row || {};
           const ex = row.extracted_data || {};
           const patientSummary = row.patient_facing_summary || ex.patient_facing_summary || "Not available";
           const opsSummary = row.internal_ops_summary || ex.internal_ops_summary || "Not available";
-          el("detailPatientSummary").textContent = patientSummary;
-          el("detailOpsSummary").textContent = opsSummary;
+          el("detailPatientSummary").textContent = redactPII(patientSummary);
+          el("detailOpsSummary").textContent = redactPII(opsSummary);
           el("detailMeta").textContent =
             `execution: ${row.execution_id || "-"} | status: ${row.status || "-"} | appointment: ${row.appointment_id || "-"}`;
+        };
+        try {
+          await tryRenderFromAnalytics();
         } catch (e) {
+          // Kick backend processing/status reconciliation, then retry detail fetch briefly.
+          try {
+            await fetchDashboardJson(`/api/call/status/${encodeURIComponent(executionId)}`, undefined, 10000);
+            for (let i = 0; i < 3; i++) {
+              await new Promise((r) => setTimeout(r, 1500));
+              try {
+                await tryRenderFromAnalytics();
+                return;
+              } catch (_) {}
+            }
+          } catch (_) {}
           // Fallback to data loaded in dashboard rows when analytics detail is missing.
           const appt = latestAppointmentsByExec[executionId];
           const kase = latestCasesByExec[executionId];
           el("detailPatientSummary").textContent =
-            (appt && (appt.summary || appt.purpose)) || "Call detail unavailable from analytics.";
+            redactPII((appt && (appt.summary || appt.purpose)) || "Call detail unavailable from analytics.");
           el("detailOpsSummary").textContent =
-            (kase && `${kase.recommended_action || "-"} | ${kase.purpose || "-"}`) || "Call detail unavailable from analytics.";
-          el("detailMeta").textContent = `execution: ${executionId} | detail source fallback`;
+            redactPII((kase && `${kase.recommended_action || "-"} | ${kase.purpose || "-"}`) || "Call detail unavailable from analytics.");
+          el("detailMeta").textContent = `execution: ${executionId} | detail source fallback (${(e && e.message) || "unavailable"})`;
         }
       }
 
       async function refreshCasesQueue() {
+        if (refreshingCases) return;
+        refreshingCases = true;
         try {
           const data = await fetchDashboardJson("/api/cases/queue");
           renderCaseRows(data.rows || []);
@@ -624,28 +713,56 @@
         } catch (e) {
           el("caseRows").innerHTML = `<tr><td colspan="10" class="danger">Failed: ${e.message}</td></tr>`;
           el("casesSummary").textContent = "Failed to load queue";
+        } finally {
+          refreshingCases = false;
         }
       }
 
       async function refreshExecutions() {
+        if (refreshingExecutions) return;
+        refreshingExecutions = true;
         try {
           const data = await fetchDashboardJson("/api/executions/recent");
           renderExecRows(data.rows || []);
         } catch (e) {
           el("execRows").innerHTML = `<tr><td colspan="6" class="danger">Failed: ${e.message}</td></tr>`;
+        } finally {
+          refreshingExecutions = false;
         }
       }
 
       async function refreshAppointments() {
+        if (refreshingAppointments) return;
+        refreshingAppointments = true;
         try {
           const data = await fetchDashboardJson("/api/appointments/summary");
-          renderApptRows(data.rows || []);
+          const rows = data.rows || [];
+          cachedAppointmentRows = rows;
+          renderApptRows(rows);
         } catch (e) {
-          el("apptRows").innerHTML = `<tr><td colspan="11" class="danger">Failed: ${e.message}</td></tr>`;
+          // One retry for transient backend delays before surfacing an error.
+          try {
+            const retried = await fetchDashboardJson("/api/appointments/summary", undefined, 30000);
+            const rows = retried.rows || [];
+            cachedAppointmentRows = rows;
+            renderApptRows(rows);
+            return;
+          } catch (retryErr) {
+            if (cachedAppointmentRows.length) {
+              renderApptRows(cachedAppointmentRows);
+              setStatus("Appointments refresh delayed; showing last known data.", false);
+              return;
+            }
+            el("apptRows").innerHTML = `<tr><td colspan="11" class="danger">Failed: ${retryErr.message}</td></tr>`;
+          }
+        } finally {
+          refreshingAppointments = false;
         }
       }
 
       async function refreshWorkflow() {
+        if (refreshingWorkflow) return;
+        refreshingWorkflow = true;
         try {
           const data = await fetchDashboardJson("/api/workflow/status");
           const checks = data.checks || {};
@@ -659,12 +776,15 @@
           `).join("");
         } catch (e) {
           el("workflowRows").innerHTML = `<tr><td class="danger">Failed: ${e.message}</td></tr>`;
+        } finally {
+          refreshingWorkflow = false;
         }
       }
 
       function humanStatusLabel(status) {
         const s = (status || "").toLowerCase();
         if (!s) return "unknown";
+        if (s === "provider_delay") return "provider delay";
         return s.replaceAll("_", " ");
       }
 
@@ -689,6 +809,21 @@
         return null;
       }
 
+      async function waitForAsyncExecution(requestId, attempts = 30) {
+        if (!requestId) return null;
+        for (let i = 0; i < attempts; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          try {
+            const req = await fetchDashboardJson(`/api/call/request/${encodeURIComponent(requestId)}`, undefined, 10000);
+            if (req.execution_id) return req;
+            if ((req.status || "").toLowerCase() === "failed") return req;
+          } catch (_) {
+            // keep polling; request record may not be available immediately
+          }
+        }
+        return null;
+      }
+
       async function callNow() {
         const phone = el("callPhone").value.trim();
         const customerName = el("callName").value.trim();
@@ -702,13 +837,25 @@
           el("callStatus").textContent = "Placing call...";
           const payload = { phone_number: phone };
           if (customerName) payload.customer_name = customerName;
-          payload.wait_for_outcome = true;
+          // Return immediately and let UI poll for final status to avoid frontend timeouts.
+          payload.wait_for_outcome = false;
+          payload.fire_and_forget = true;
           const res = await fetchDashboardJson("/api/call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
-          });
-          const execId = res.execution_id || "-";
+          }, 65000);
+          let execId = res.execution_id || "-";
+          if (execId === "-" && res.request_id) {
+            el("callStatus").className = "warn";
+            el("callStatus").textContent = "Call queued. Waiting for provider execution id...";
+            const reqState = await waitForAsyncExecution(res.request_id, 40);
+            if (reqState && reqState.execution_id) {
+              execId = reqState.execution_id;
+            } else if (reqState && (reqState.status || "").toLowerCase() === "failed") {
+              throw new Error(reqState.error || "provider request failed");
+            }
+          }
           el("lastExecution").textContent = `execution_id: ${execId}`;
           if (execId !== "-") {
             try {
@@ -742,8 +889,15 @@
             await renderCallDetail(execId);
           }
         } catch (e) {
+          const msg = String((e && e.message) || e || "");
+          if (msg.includes("timeout")) {
+            el("callStatus").className = "warn";
+            el("callStatus").textContent = "Call request accepted but provider response is delayed. Refresh executions to track progress.";
+            await Promise.all([refreshExecutions(), refreshAppointments(), refreshCasesQueue()]).catch(() => {});
+            return;
+          }
           el("callStatus").className = "danger";
-          el("callStatus").textContent = `Call failed: ${e.message}`;
+          el("callStatus").textContent = `Call failed: ${msg}`;
         }
       }
 
@@ -756,7 +910,13 @@
             return;
           }
           if (v.version && current !== v.version) {
-            window.location.reload();
+            // Avoid disruptive auto-reloads during live operations/demo recordings.
+            // Keep polling data and show a soft notice instead.
+            window.__dashboardVersion = v.version;
+            const statusText = el("statusText");
+            if (statusText && !String(statusText.textContent || "").includes("new dashboard version")) {
+              setStatus("A new dashboard version is available. Refresh manually when convenient.", false);
+            }
           }
         } catch (_) {
           // keep UI resilient if version endpoint temporarily fails
@@ -811,6 +971,10 @@
       el("refreshCasesBtn").addEventListener("click", refreshCasesQueue);
       el("workflowRefreshBtn").addEventListener("click", refreshWorkflow);
       el("callNowBtn").addEventListener("click", callNow);
+      el("privacyMode").addEventListener("change", () => {
+        el("callPhone").type = isPrivacyMode() ? "password" : "text";
+        Promise.all([refreshExecutions(), refreshAppointments(), refreshCasesQueue()]).catch(() => {});
+      });
       el("copyPatientSummaryBtn").addEventListener("click", () => copySummary(el("detailPatientSummary").textContent));
       el("copyOpsSummaryBtn").addEventListener("click", () => copySummary(el("detailOpsSummary").textContent));
       document.addEventListener("click", (evt) => {

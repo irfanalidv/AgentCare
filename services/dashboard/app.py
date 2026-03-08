@@ -4,6 +4,7 @@ import json
 import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,11 @@ _processing_execution_ids: set[str] = set()
 _processing_lock = threading.Lock()
 _dashboard_boot_ts = datetime.now(timezone.utc).isoformat()
 _recent_exec_cache: dict[str, Any] = {"rows": [], "ts": 0.0}
+_appointments_cache: dict[str, Any] = {"payload": None, "ts": 0.0}
+_cases_cache: dict[str, Any] = {"payload": None, "ts": 0.0}
+_async_call_requests: dict[str, dict[str, Any]] = {}
+_async_call_lock = threading.Lock()
+_async_call_state_path = Path("artifacts/async_call_requests.json")
 
 _static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=_static_dir), name="static")
@@ -70,6 +76,7 @@ class CallNowRequest(BaseModel):
     bypass_call_guardrails: bool | None = None
     user_data: dict[str, Any] | None = None
     wait_for_outcome: bool | None = True
+    fire_and_forget: bool | None = False
 
 
 DOCTOR_DIRECTORY: list[DoctorProfile] = load_doctor_schema()
@@ -85,6 +92,25 @@ def _load_json_rows(path: Path) -> list[dict[str, Any]]:
     except Exception:
         pass
     return []
+
+
+def _status_from_local_event(execution_id: str) -> dict[str, Any] | None:
+    rows = _load_json_rows(Path("artifacts/call_events.json"))
+    for row in reversed(rows):
+        if str(row.get("execution_id") or "") != execution_id:
+            continue
+        status = str(row.get("status") or "unknown").lower()
+        return {
+            "execution_id": execution_id,
+            "status": status,
+            "terminal": _is_terminal_execution_status(status),
+            "telephony_data": row.get("telephony_data") or {},
+            "error_message": row.get("error_message"),
+            "updated_at": row.get("updated_at") or row.get("created_at"),
+            "processing_triggered": False,
+            "source": "local_event_fallback",
+        }
+    return None
 
 
 def _is_synthetic_event(row: dict[str, Any]) -> bool:
@@ -311,6 +337,172 @@ def _trigger_execution_processing_async(execution_payload: dict[str, Any]) -> bo
     return True
 
 
+def _compose_call_detail_from_execution(payload: dict[str, Any]) -> dict[str, Any]:
+    execution_id = str(payload.get("id") or payload.get("execution_id") or "")
+    status = str(payload.get("status") or "").lower()
+    transcript = str(payload.get("transcript") or "").strip()
+    extracted = payload.get("extracted_data") or {}
+    if not isinstance(extracted, dict):
+        extracted = {}
+    try:
+        if transcript and not extracted:
+            extracted = extract_conversation_fields(transcript).model_dump()
+    except Exception:
+        extracted = extracted or {}
+    patient_summary = (
+        str(payload.get("patient_facing_summary") or extracted.get("patient_facing_summary") or extracted.get("summary") or "").strip()
+    )
+    ops_summary = (
+        str(payload.get("internal_ops_summary") or extracted.get("internal_ops_summary") or "").strip()
+    )
+    if not patient_summary and transcript:
+        patient_summary = transcript[:280]
+    if not ops_summary:
+        reason = str(extracted.get("reason") or extracted.get("reason_for_visit") or "").strip()
+        intent = str(extracted.get("intent") or payload.get("intent") or "").strip()
+        appt = str(payload.get("appointment_id") or extracted.get("appointment_id") or "").strip()
+        ops_parts = [
+            f"status={status or 'unknown'}",
+            f"intent={intent}" if intent else "",
+            f"appointment={appt}" if appt else "",
+            f"reason={reason}" if reason else "",
+        ]
+        ops_summary = " | ".join([p for p in ops_parts if p])
+    return {
+        "execution_id": execution_id,
+        "status": status,
+        "appointment_id": payload.get("appointment_id") or extracted.get("appointment_id"),
+        "patient_facing_summary": patient_summary or "Detail pending from provider.",
+        "internal_ops_summary": ops_summary or "Detail pending from provider.",
+        "extracted_data": extracted,
+    }
+
+
+def _watch_execution_until_terminal(
+    *,
+    api_key: str,
+    execution_id: str,
+    request_id: str | None = None,
+    timeout_s: int = 240,
+) -> None:
+    start = time.time()
+    processing_kicked = False
+    try:
+        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=10.0) as client:
+            while (time.time() - start) < timeout_s:
+                ex = client.get_execution(execution_id=execution_id).model_dump()
+                status = str(ex.get("status") or "").lower()
+                has_transcript = bool(str(ex.get("transcript") or "").strip())
+                persist_call_lifecycle_event(
+                    execution_id=execution_id,
+                    status=status,
+                    source="dashboard_async_watcher",
+                    details={
+                        "provider": ((ex.get("telephony_data") or {}).get("provider")),
+                        "hangup_reason": ((ex.get("telephony_data") or {}).get("hangup_reason")),
+                    },
+                )
+                if request_id:
+                    _set_async_call_request(
+                        request_id,
+                        execution_id=execution_id,
+                        status=status or "queued",
+                        error=None,
+                    )
+                # If transcript is available, start downstream processing even when
+                # provider status is slow to transition out of "queued".
+                if has_transcript and not processing_kicked:
+                    _trigger_execution_processing_async(ex)
+                    processing_kicked = True
+                    if request_id and status == "queued":
+                        _set_async_call_request(request_id, status="processing")
+                if _is_terminal_execution_status(status):
+                    if status == "completed":
+                        _trigger_execution_processing_async(ex)
+                    elif request_id and not processing_kicked:
+                        _set_async_call_request(request_id, status=status)
+                    return
+                time.sleep(2)
+        if request_id and not processing_kicked:
+            _set_async_call_request(request_id, status="provider_delay")
+    except Exception as e:
+        if request_id:
+            _set_async_call_request(request_id, status="failed", error=str(e))
+
+
+def _run_with_timeout(fn, timeout_s: float, **kwargs: Any) -> Any:
+    ex = ThreadPoolExecutor(max_workers=1)
+    fut = ex.submit(fn, **kwargs)
+    try:
+        return fut.result(timeout=timeout_s)
+    finally:
+        # Do not wait for hung DB work; keep endpoint responsive.
+        ex.shutdown(wait=False, cancel_futures=True)
+
+
+def _set_async_call_request(request_id: str, **updates: Any) -> None:
+    with _async_call_lock:
+        _async_call_state_path.parent.mkdir(parents=True, exist_ok=True)
+        persisted: dict[str, Any] = {}
+        if _async_call_state_path.exists():
+            try:
+                payload = json.loads(_async_call_state_path.read_text("utf-8"))
+                if isinstance(payload, dict):
+                    persisted = payload
+            except Exception:
+                persisted = {}
+        # Merge with in-memory view for current process continuity.
+        current = dict(persisted.get(request_id) or _async_call_requests.get(request_id) or {})
+        current.update(updates)
+        current["updated_at"] = datetime.now(timezone.utc).isoformat()
+        _async_call_requests[request_id] = current
+        persisted[request_id] = current
+        tmp = _async_call_state_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(persisted, indent=2, default=str), "utf-8")
+        tmp.replace(_async_call_state_path)
+
+
+def _get_async_call_request(request_id: str) -> dict[str, Any] | None:
+    with _async_call_lock:
+        # Check local memory first (fast path).
+        if request_id in _async_call_requests:
+            return dict(_async_call_requests[request_id])
+        if not _async_call_state_path.exists():
+            return None
+        try:
+            payload = json.loads(_async_call_state_path.read_text("utf-8"))
+            if isinstance(payload, dict):
+                state = payload.get(request_id)
+                if isinstance(state, dict):
+                    _async_call_requests[request_id] = state
+                    return dict(state)
+        except Exception:
+            return None
+        return None
+
+
+def _build_appointments_json_fallback(limit: int) -> dict[str, Any]:
+    prev_db_url = settings.database_url
+    try:
+        settings.database_url = None
+        payload = build_appointment_summary(limit=limit)
+        payload["source"] = "json_fallback"
+        return payload
+    finally:
+        settings.database_url = prev_db_url
+
+
+def _build_cases_json_fallback(limit: int) -> dict[str, Any]:
+    prev_db_url = settings.database_url
+    try:
+        settings.database_url = None
+        payload = build_cases_queue(limit=limit)
+        payload["source"] = "json_fallback"
+        return payload
+    finally:
+        settings.database_url = prev_db_url
+
+
 @app.get("/api/workflow/status")
 def workflow_status() -> dict[str, Any]:
     targets = {
@@ -346,11 +538,68 @@ def call_now(req: CallNowRequest) -> dict[str, Any]:
         )
     agent_id = req.agent_id or default_agent_id
     user_data = dict(req.user_data or {})
+    # Dashboard "Call Now" should prioritize immediate dialing.
+    bypass_guardrails = True if req.bypass_call_guardrails is None else req.bypass_call_guardrails
+    if req.fire_and_forget:
+        explicit_name = (req.customer_name or "").strip()
+        if explicit_name and "customer_name" not in user_data:
+            user_data["customer_name"] = explicit_name
+        request_id = f"callreq_{int(time.time() * 1000)}"
+        _set_async_call_request(
+            request_id,
+            status="queued",
+            execution_id=None,
+            error=None,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+        def _runner() -> None:
+            try:
+                with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=30.0) as client:
+                    result = client.make_call(
+                        agent_id=agent_id,
+                        recipient_phone_number=phone,
+                        from_phone_number=req.from_phone_number,
+                        scheduled_at=req.scheduled_at,
+                        user_data=user_data or None,
+                        bypass_call_guardrails=bypass_guardrails,
+                    )
+                    payload = result.model_dump()
+                    _set_async_call_request(
+                        request_id,
+                        status=str(payload.get("status") or "queued").lower(),
+                        execution_id=payload.get("execution_id"),
+                        error=None,
+                    )
+                    execution_id = str(payload.get("execution_id") or "").strip()
+                    persist_call_lifecycle_event(
+                        execution_id=execution_id or payload.get("execution_id"),
+                        status=payload.get("status"),
+                        source="dashboard_api_async",
+                        details={"phase": "call_created", "request_id": request_id},
+                    )
+                    if execution_id:
+                        _watch_execution_until_terminal(
+                            api_key=api_key,
+                            execution_id=execution_id,
+                            request_id=request_id,
+                        )
+            except Exception as e:
+                # Keep API response fast; detailed failure is visible in provider logs/status polling.
+                _set_async_call_request(request_id, status="failed", error=str(e))
+
+        threading.Thread(target=_runner, daemon=True).start()
+        return {
+            "request_id": request_id,
+            "execution_id": "-",
+            "status": "queued",
+            "effective_status": "queued",
+            "outcome_hint": "queued_async",
+            "next_action": "refresh_executions_and_poll_status",
+        }
     resolved_name = _resolve_customer_name(req.phone_number, req.customer_name)
     if resolved_name and "customer_name" not in user_data:
         user_data["customer_name"] = resolved_name
-    # Dashboard "Call Now" should prioritize immediate dialing.
-    bypass_guardrails = True if req.bypass_call_guardrails is None else req.bypass_call_guardrails
     try:
         with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url) as client:
             result = client.make_call(
@@ -426,6 +675,17 @@ def call_now(req: CallNowRequest) -> dict[str, Any]:
         raise HTTPException(status_code=e.status_code or 400, detail=detail) from e
 
 
+@app.get("/api/call/request/{request_id}")
+def call_request_status(request_id: str) -> dict[str, Any]:
+    rid = str(request_id or "").strip()
+    if not rid:
+        raise HTTPException(status_code=400, detail="request_id is required")
+    payload = _get_async_call_request(rid) or {}
+    if not payload:
+        raise HTTPException(status_code=404, detail="request_id not found")
+    return payload
+
+
 @app.get("/api/executions/recent")
 def recent_executions(limit: int = 20) -> dict[str, Any]:
     api_key, agent_id = _require_bolna()
@@ -469,37 +729,70 @@ def recent_executions(limit: int = 20) -> dict[str, Any]:
 @app.get("/api/call/status/{execution_id}")
 def call_status(execution_id: str) -> dict[str, Any]:
     api_key, _agent_id = _require_bolna()
+    local_terminal = _status_from_local_event(execution_id)
+    if local_terminal and bool(local_terminal.get("terminal")):
+        return local_terminal
     try:
-        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url) as client:
-            ex = client.get_execution(execution_id=execution_id)
-            payload = ex.model_dump()
-            status = str(payload.get("status") or "").lower()
-            persist_call_lifecycle_event(
-                execution_id=execution_id,
-                status=status,
-                source="dashboard_status",
-                details={
-                    "provider": ((payload.get("telephony_data") or {}).get("provider")),
-                    "hangup_reason": ((payload.get("telephony_data") or {}).get("hangup_reason")),
-                },
-            )
-            terminal = _is_terminal_execution_status(status)
-            processing_triggered = bool(terminal and status == "completed" and _trigger_execution_processing_async(payload))
+        def _fetch_provider_execution() -> dict[str, Any]:
+            with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0) as client:
+                return client.get_execution(execution_id=execution_id).model_dump()
 
-            return {
-                "execution_id": execution_id,
-                "status": status,
-                "terminal": terminal,
-                "telephony_data": payload.get("telephony_data") or {},
-                "error_message": payload.get("error_message"),
-                "updated_at": payload.get("updated_at"),
-                "processing_triggered": processing_triggered,
-            }
+        payload = _run_with_timeout(_fetch_provider_execution, timeout_s=8.0)
+        status = str(payload.get("status") or "").lower()
+        persist_call_lifecycle_event(
+            execution_id=execution_id,
+            status=status,
+            source="dashboard_status",
+            details={
+                "provider": ((payload.get("telephony_data") or {}).get("provider")),
+                "hangup_reason": ((payload.get("telephony_data") or {}).get("hangup_reason")),
+            },
+        )
+        terminal = _is_terminal_execution_status(status)
+        processing_triggered = bool(terminal and status == "completed" and _trigger_execution_processing_async(payload))
+        return {
+            "execution_id": execution_id,
+            "status": status,
+            "terminal": terminal,
+            "telephony_data": payload.get("telephony_data") or {},
+            "error_message": payload.get("error_message"),
+            "updated_at": payload.get("updated_at"),
+            "processing_triggered": processing_triggered,
+            "source": "provider_live",
+        }
+    except FuturesTimeoutError:
+        fallback = _status_from_local_event(execution_id)
+        if fallback:
+            return fallback
+        return {
+            "execution_id": execution_id,
+            "status": "queued",
+            "terminal": False,
+            "telephony_data": {},
+            "error_message": "provider_timeout",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "processing_triggered": False,
+            "source": "provider_timeout_fallback",
+        }
     except BolnaAuthError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
     except BolnaRequestError as e:
         detail = e.details if e.details is not None else str(e)
         raise HTTPException(status_code=e.status_code or 400, detail=detail) from e
+    except Exception:
+        fallback = _status_from_local_event(execution_id)
+        if fallback:
+            return fallback
+        return {
+            "execution_id": execution_id,
+            "status": "unknown",
+            "terminal": False,
+            "telephony_data": {},
+            "error_message": "status_unavailable",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "processing_triggered": False,
+            "source": "error_fallback",
+        }
 
 
 @app.get("/api/call/lifecycle/{execution_id}")
@@ -507,9 +800,78 @@ def call_lifecycle(execution_id: str) -> dict[str, Any]:
     return get_call_lifecycle(execution_id)
 
 
+@app.get("/api/call/detail/{execution_id}")
+def call_detail(execution_id: str) -> dict[str, Any]:
+    eid = str(execution_id or "").strip()
+    if not eid:
+        return {"ok": False, "error": "execution_id is required"}
+    api_key, _agent_id = _require_bolna()
+    try:
+        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0) as client:
+            ex = client.get_execution(execution_id=eid)
+            row = _compose_call_detail_from_execution(ex.model_dump())
+            return {"ok": True, "row": row, "source": "provider_live"}
+    except Exception as e:
+        # graceful fallback shape for UI
+        return {
+            "ok": False,
+            "error": "provider_timeout",
+            "detail": str(e),
+            "row": {
+                "execution_id": eid,
+                "status": "unknown",
+                "appointment_id": None,
+                "patient_facing_summary": "Call detail unavailable from provider.",
+                "internal_ops_summary": "Call detail unavailable from provider.",
+                "extracted_data": {},
+            },
+            "source": "provider_fallback",
+        }
+
+
 @app.get("/api/appointments/summary")
 def appointment_summary(limit: int = 50) -> dict[str, Any]:
-    return build_appointment_summary(limit=limit)
+    limit = max(1, min(limit, 200))
+    now_ts = time.time()
+    if _appointments_cache["payload"] and (now_ts - float(_appointments_cache["ts"])) < 8.0:
+        cached = dict(_appointments_cache["payload"])
+        cached["rows"] = (cached.get("rows") or [])[:limit]
+        cached["source"] = "cache"
+        return cached
+    try:
+        payload = _run_with_timeout(build_appointment_summary, timeout_s=12.0, limit=limit)
+        _appointments_cache["payload"] = payload
+        _appointments_cache["ts"] = now_ts
+        payload["source"] = "live"
+        return payload
+    except FuturesTimeoutError:
+        try:
+            payload = _build_appointments_json_fallback(limit)
+            _appointments_cache["payload"] = payload
+            _appointments_cache["ts"] = now_ts
+            payload["source"] = payload.get("source") or "json_fallback_timeout"
+            return payload
+        except Exception:
+            if _appointments_cache["payload"]:
+                cached = dict(_appointments_cache["payload"])
+                cached["rows"] = (cached.get("rows") or [])[:limit]
+                cached["source"] = "cache_stale_timeout"
+                return cached
+            raise
+    except Exception:
+        try:
+            payload = _build_appointments_json_fallback(limit)
+            _appointments_cache["payload"] = payload
+            _appointments_cache["ts"] = now_ts
+            payload["source"] = payload.get("source") or "json_fallback_error"
+            return payload
+        except Exception:
+            if _appointments_cache["payload"]:
+                cached = dict(_appointments_cache["payload"])
+                cached["rows"] = (cached.get("rows") or [])[:limit]
+                cached["source"] = "cache_stale"
+                return cached
+            raise
 
 
 @app.get("/api/doctors/schema")
@@ -519,5 +881,45 @@ def doctors_schema() -> dict[str, Any]:
 
 @app.get("/api/cases/queue")
 def cases_queue(limit: int = 100) -> dict[str, Any]:
-    return build_cases_queue(limit=limit)
+    limit = max(1, min(limit, 500))
+    now_ts = time.time()
+    if _cases_cache["payload"] and (now_ts - float(_cases_cache["ts"])) < 8.0:
+        cached = dict(_cases_cache["payload"])
+        cached["rows"] = (cached.get("rows") or [])[:limit]
+        cached["source"] = "cache"
+        return cached
+    try:
+        payload = _run_with_timeout(build_cases_queue, timeout_s=12.0, limit=limit)
+        _cases_cache["payload"] = payload
+        _cases_cache["ts"] = now_ts
+        payload["source"] = "live"
+        return payload
+    except FuturesTimeoutError:
+        try:
+            payload = _build_cases_json_fallback(limit)
+            _cases_cache["payload"] = payload
+            _cases_cache["ts"] = now_ts
+            payload["source"] = payload.get("source") or "json_fallback_timeout"
+            return payload
+        except Exception:
+            if _cases_cache["payload"]:
+                cached = dict(_cases_cache["payload"])
+                cached["rows"] = (cached.get("rows") or [])[:limit]
+                cached["source"] = "cache_stale_timeout"
+                return cached
+            raise
+    except Exception:
+        try:
+            payload = _build_cases_json_fallback(limit)
+            _cases_cache["payload"] = payload
+            _cases_cache["ts"] = now_ts
+            payload["source"] = payload.get("source") or "json_fallback_error"
+            return payload
+        except Exception:
+            if _cases_cache["payload"]:
+                cached = dict(_cases_cache["payload"])
+                cached["rows"] = (cached.get("rows") or [])[:limit]
+                cached["source"] = "cache_stale"
+                return cached
+            raise
 

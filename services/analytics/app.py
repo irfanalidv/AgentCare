@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from fastapi import FastAPI, Query
@@ -17,7 +18,6 @@ from agentcare.analytics import (
     get_overview,
     get_overview_fallback,
 )
-from agentcare.customer import get_customer_store
 from agentcare.settings import settings
 
 
@@ -38,14 +38,29 @@ def _db_ready() -> bool:
     return not any(x in settings.database_url for x in bad)
 
 
+def _run_with_timeout(fn, timeout_s: float, **kwargs: Any) -> Any:
+    ex = ThreadPoolExecutor(max_workers=1)
+    fut = ex.submit(fn, **kwargs)
+    try:
+        return fut.result(timeout=timeout_s)
+    finally:
+        # Do not block response path on slow DB calls.
+        ex.shutdown(wait=False, cancel_futures=True)
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, Any]:
-    store = get_customer_store()
-    effective_store = type(store).__name__
+    # Keep health checks non-blocking; avoid DB/customer-store initialization here.
+    backend = str(settings.customer_store_backend or "auto")
+    effective_store = {
+        "postgres": "PostgresCustomerStore",
+        "json": "JsonCustomerStore",
+        "auto": "AutoCustomerStore",
+    }.get(backend, "UnknownCustomerStore")
     return {
         "ok": True,
         "db_ready": _db_ready(),
-        "backend": settings.customer_store_backend,
+        "backend": backend,
         "effective_customer_store": effective_store,
         "fallback_enabled": True,
     }
@@ -59,7 +74,9 @@ def analytics_overview(
     if not _db_ready():
         return get_overview_fallback(from_ts=from_ts, to_ts=to_ts)
     try:
-        return get_overview(from_ts=from_ts, to_ts=to_ts)
+        return _run_with_timeout(get_overview, timeout_s=4.0, from_ts=from_ts, to_ts=to_ts)
+    except FuturesTimeoutError:
+        return get_overview_fallback(from_ts=from_ts, to_ts=to_ts)
     except Exception:
         return get_overview_fallback(from_ts=from_ts, to_ts=to_ts)
 
@@ -73,7 +90,16 @@ def analytics_calls_timeseries(
     if not _db_ready():
         return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
     try:
-        return {"rows": get_calls_timeseries(from_ts=from_ts, to_ts=to_ts, interval=interval)}
+        rows = _run_with_timeout(
+            get_calls_timeseries,
+            timeout_s=4.0,
+            from_ts=from_ts,
+            to_ts=to_ts,
+            interval=interval,
+        )
+        return {"rows": rows}
+    except FuturesTimeoutError:
+        return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
     except Exception:
         return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
 
@@ -86,7 +112,9 @@ def analytics_funnel(
     if not _db_ready():
         return get_funnel_fallback(from_ts=from_ts, to_ts=to_ts)
     try:
-        return get_funnel(from_ts=from_ts, to_ts=to_ts)
+        return _run_with_timeout(get_funnel, timeout_s=4.0, from_ts=from_ts, to_ts=to_ts)
+    except FuturesTimeoutError:
+        return get_funnel_fallback(from_ts=from_ts, to_ts=to_ts)
     except Exception:
         return get_funnel_fallback(from_ts=from_ts, to_ts=to_ts)
 
@@ -99,7 +127,9 @@ def analytics_customer_cohorts(
     if not _db_ready():
         return get_customer_cohorts_fallback(from_ts=from_ts, to_ts=to_ts)
     try:
-        return get_customer_cohorts(from_ts=from_ts, to_ts=to_ts)
+        return _run_with_timeout(get_customer_cohorts, timeout_s=4.0, from_ts=from_ts, to_ts=to_ts)
+    except FuturesTimeoutError:
+        return get_customer_cohorts_fallback(from_ts=from_ts, to_ts=to_ts)
     except Exception:
         return get_customer_cohorts_fallback(from_ts=from_ts, to_ts=to_ts)
 
@@ -115,13 +145,18 @@ def analytics_call_detail(execution_id: str) -> dict[str, Any]:
             return {"ok": False, "error": "not_found", "execution_id": execution_id}
         return {"ok": True, "row": row}
     try:
-        row = get_call_detail(execution_id)
+        row = _run_with_timeout(get_call_detail, timeout_s=4.0, execution_id=execution_id)
         if not row:
             fallback = get_call_detail_fallback(execution_id)
             if fallback:
                 return {"ok": True, "row": fallback}
             return {"ok": False, "error": "not_found", "execution_id": execution_id}
         return {"ok": True, "row": row}
+    except FuturesTimeoutError:
+        fallback = get_call_detail_fallback(execution_id)
+        if fallback:
+            return {"ok": True, "row": fallback}
+        return {"ok": False, "error": "timeout", "execution_id": execution_id}
     except Exception:
         fallback = get_call_detail_fallback(execution_id)
         if fallback:

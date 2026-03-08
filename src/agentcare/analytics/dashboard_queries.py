@@ -37,14 +37,9 @@ def _db_connect():
 
 def _load_call_events() -> list[dict[str, Any]]:
     """
-    JSON-first source of truth for dashboard projections.
-    This keeps dashboard APIs responsive even when DB is intermittently slow.
-    DB remains a fallback when local artifacts are unavailable.
+    DB-first source of truth for dashboard projections.
+    Falls back to artifact JSON when DB is unavailable/slow.
     """
-    local_rows = _load_json_rows(Path("artifacts/call_events.json"))
-    if local_rows:
-        return local_rows
-
     if _db_ready():
         try:
             with _db_connect() as conn:
@@ -100,14 +95,10 @@ def _load_call_events() -> list[dict[str, Any]]:
                 return out
         except Exception:
             pass
-    return []
+    return _load_json_rows(Path("artifacts/call_events.json"))
 
 
 def _load_customers() -> list[dict[str, Any]]:
-    local_rows = _load_json_rows(Path(settings.customer_store_path))
-    if local_rows:
-        return local_rows
-
     if _db_ready():
         try:
             with _db_connect() as conn:
@@ -136,7 +127,7 @@ def _load_customers() -> list[dict[str, Any]]:
                 return out
         except Exception:
             pass
-    return []
+    return _load_json_rows(Path(settings.customer_store_path))
 
 
 def _load_json_rows(path: Path) -> list[dict[str, Any]]:
@@ -329,6 +320,8 @@ def _extract_email_delivery_status(email_confirmation: Any) -> str:
         return "sent"
     if ok_flag is False:
         return "failed"
+    if _extract_first_str(email_confirmation, ("id", "message_id", "delivery_id", "email_delivery_id")):
+        return "sent"
     status = (_extract_first_str(email_confirmation, ("status", "delivery_status")) or "").lower()
     if status in {"sent", "delivered", "success", "ok"}:
         return "sent"
