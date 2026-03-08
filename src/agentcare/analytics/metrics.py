@@ -6,14 +6,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import psycopg
-
 from agentcare.settings import settings
 
 
 def _connect():
     if not settings.database_url or "[YOUR-" in settings.database_url or "YOUR-PASSWORD" in settings.database_url:
         raise ValueError("DATABASE_URL/SUPABASE_DB_URL is not configured with a real value")
+    try:
+        import psycopg
+    except Exception as e:
+        raise RuntimeError("psycopg is required for database-backed analytics. Install agentcare[postgres].") from e
     return psycopg.connect(settings.database_url)
 
 
