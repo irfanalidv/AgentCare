@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f2937"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 40px Arial, sans-serif; fill: #e5f0ff; }
+      .subtitle { font: 400 18px Arial, sans-serif; fill: #9fb3d9; }
+      .layer { fill: url(#card); stroke: #2d405f; stroke-width: 2; rx: 18; }
+      .label { font: 700 20px Arial, sans-serif; fill: #dce9ff; }
+      .node { font: 500 16px Arial, sans-serif; fill: #9ec5ff; }
+      .side { fill: #111f35; stroke: #2f4f7a; stroke-width: 2; rx: 14; }
+      .sideLabel { font: 700 17px Arial, sans-serif; fill: #d4e8ff; }
+      .arrow { stroke: #6ea7ff; stroke-width: 3; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#6ea7ff"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <text x="70" y="85" class="title">AgentCare Architecture</text>
+  <text x="70" y="120" class="subtitle">Library-first design with clean ports/adapters boundaries</text>
+
+  <rect x="120" y="180" width="1180" height="90" class="layer"/>
+  <text x="150" y="235" class="label">1) Framework Consumer + CLI</text>
+  <text x="620" y="235" class="node">`agentcare` commands</text>
+
+  <rect x="120" y="300" width="1180" height="90" class="layer"/>
+  <text x="150" y="355" class="label">2) Usecases and Orchestrators</text>
+  <text x="650" y="355" class="node">Frontdesk / Care Navigation / Follow-up</text>
+
+  <rect x="120" y="420" width="1180" height="90" class="layer"/>
+  <text x="150" y="475" class="label">3) Ports Interfaces</text>
+  <text x="610" y="475" class="node">CustomerStore • AppointmentConnector • Notifier • Extractor • Analytics</text>
+
+  <rect x="120" y="540" width="1180" height="90" class="layer"/>
+  <text x="150" y="595" class="label">4) Adapters / Providers</text>
+  <text x="555" y="595" class="node">Concrete implementations in customer/connectors/email/analytics/extraction</text>
+
+  <rect x="120" y="660" width="1180" height="90" class="layer"/>
+  <text x="150" y="715" class="label">5) External APIs + Storage</text>
+  <text x="490" y="715" class="node">Bolna • Mistral • Cal • Resend • Postgres</text>
+
+  <rect x="1335" y="290" width="220" height="130" class="side"/>
+  <text x="1360" y="335" class="sideLabel">FastAPI Services</text>
+  <text x="1360" y="365" class="node">webhooks</text>
+  <text x="1360" y="390" class="node">analytics</text>
+  <text x="1360" y="415" class="node">dashboard</text>
+
+  <rect x="1335" y="500" width="220" height="100" class="side"/>
+  <text x="1360" y="545" class="sideLabel">Dashboard UI</text>
+  <text x="1360" y="575" class="node">Operator Console</text>
+
+  <path d="M710,270 L710,300" class="arrow"/>
+  <path d="M710,390 L710,420" class="arrow"/>
+  <path d="M710,510 L710,540" class="arrow"/>
+  <path d="M710,630 L710,660" class="arrow"/>
+
+  <path d="M1300,345 L1335,345" class="arrow"/>
+  <path d="M1300,570 L1335,550" class="arrow"/>
+  <path d="M1445,420 L1445,500" class="arrow"/>
+</svg>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="900" viewBox="0 0 1500 900">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f4f8ff"/>
+      <stop offset="100%" stop-color="#eaf1ff"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 34px Arial, sans-serif; fill: #12345e; }
+      .sub { font: 500 16px Arial, sans-serif; fill: #4a6d9a; }
+      .core { fill: #173b6c; stroke: #0f2a4b; stroke-width: 2; }
+      .coreText { font: 700 24px Arial, sans-serif; fill: #e8f1ff; }
+      .nodeA { fill: #ffffff; stroke: #2f7ae5; stroke-width: 2.5; rx: 16; }
+      .nodeB { fill: #ffffff; stroke: #10b981; stroke-width: 2.5; rx: 16; }
+      .nodeC { fill: #ffffff; stroke: #8b5cf6; stroke-width: 2.5; rx: 16; }
+      .nodeT { font: 700 18px Arial, sans-serif; fill: #1a406d; }
+      .nodeD { font: 500 14px Arial, sans-serif; fill: #547aa8; }
+      .arrow { stroke: #6b90c9; stroke-width: 2.5; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#6b90c9"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="900" fill="url(#bg3)"/>
+  <text x="48" y="66" class="title">Extension Map</text>
+  <text x="48" y="92" class="sub">Where to customize AgentCare safely</text>
+
+  <circle cx="760" cy="450" r="110" class="core"/>
+  <text x="690" y="445" class="coreText">Extend</text>
+  <text x="648" y="478" class="coreText">AgentCare</text>
+
+  <rect x="120" y="180" width="300" height="120" class="nodeA"/>
+  <text x="145" y="220" class="nodeT">Workflows</text>
+  <text x="145" y="248" class="nodeD">`workflows/registry.py`</text>
+  <text x="145" y="272" class="nodeD">add new flow templates</text>
+
+  <rect x="540" y="120" width="330" height="120" class="nodeB"/>
+  <text x="565" y="160" class="nodeT">Scheduling Connectors</text>
+  <text x="565" y="188" class="nodeD">`connectors/appointments.py`</text>
+  <text x="565" y="212" class="nodeD">Cal / custom provider</text>
+
+  <rect x="1020" y="180" width="330" height="120" class="nodeC"/>
+  <text x="1045" y="220" class="nodeT">Policies</text>
+  <text x="1045" y="248" class="nodeD">`policies/frontdesk.py`</text>
+  <text x="1045" y="272" class="nodeD">triage + automation rules</text>
+
+  <rect x="1120" y="540" width="320" height="120" class="nodeA"/>
+  <text x="1145" y="580" class="nodeT">Doctor Routing</text>
+  <text x="1145" y="608" class="nodeD">`doctor/router.py`</text>
+  <text x="1145" y="632" class="nodeD">specialty heuristics</text>
+
+  <rect x="520" y="680" width="360" height="120" class="nodeB"/>
+  <text x="545" y="720" class="nodeT">Dashboard Projections</text>
+  <text x="545" y="748" class="nodeD">`analytics/dashboard_queries.py`</text>
+  <text x="545" y="772" class="nodeD">ops tables and read models</text>
+
+  <rect x="90" y="560" width="340" height="120" class="nodeC"/>
+  <text x="115" y="600" class="nodeT">Notifications</text>
+  <text x="115" y="628" class="nodeD">`email/resend_client.py`</text>
+  <text x="115" y="652" class="nodeD">brand templates and content</text>
+
+  <path d="M680,392 L420,250" class="arrow"/>
+  <path d="M745,338 L710,240" class="arrow"/>
+  <path d="M842,382 L1020,250" class="arrow"/>
+  <path d="M860,520 L1120,600" class="arrow"/>
+  <path d="M760,560 L700,680" class="arrow"/>
+  <path d="M665,520 L430,620" class="arrow"/>
+</svg>

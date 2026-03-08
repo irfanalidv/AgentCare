@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="ubg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eef5ff"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 42px Arial, sans-serif; fill: #0f2a4f; }
+      .sub { font: 400 20px Arial, sans-serif; fill: #3c5e8e; }
+      .card1 { fill: #ffffff; stroke: #2c7be5; stroke-width: 2.5; rx: 18; }
+      .card2 { fill: #ffffff; stroke: #00a87e; stroke-width: 2.5; rx: 18; }
+      .card3 { fill: #ffffff; stroke: #8b5cf6; stroke-width: 2.5; rx: 18; }
+      .head { font: 700 24px Arial, sans-serif; fill: #123763; }
+      .bullet { font: 500 18px Arial, sans-serif; fill: #325a88; }
+      .shared { fill: #11263f; stroke: #2f4f79; stroke-width: 2; rx: 16; }
+      .sharedHead { font: 700 24px Arial, sans-serif; fill: #e2eeff; }
+      .sharedText { font: 500 18px Arial, sans-serif; fill: #a8c6ef; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#ubg)"/>
+  <text x="80" y="95" class="title">AgentCare Use-Case Map</text>
+  <text x="80" y="132" class="sub">Pick a workflow, connect APIs, and go live fast.</text>
+
+  <rect x="70" y="190" width="470" height="470" class="card1"/>
+  <text x="105" y="245" class="head">Frontdesk Booking</text>
+  <text x="105" y="292" class="bullet">• New appointment requests</text>
+  <text x="105" y="332" class="bullet">• Reschedule / cancel flows</text>
+  <text x="105" y="372" class="bullet">• Slot check + booking APIs</text>
+  <text x="105" y="412" class="bullet">• Patient confirmation email</text>
+  <text x="105" y="452" class="bullet">• Booking cause + date/time capture</text>
+  <text x="105" y="492" class="bullet">• Internal ops summary</text>
+
+  <rect x="565" y="190" width="470" height="470" class="card2"/>
+  <text x="600" y="245" class="head">Care Navigation</text>
+  <text x="600" y="292" class="bullet">• Symptom/issue categorization</text>
+  <text x="600" y="332" class="bullet">• Urgency + risk tagging</text>
+  <text x="600" y="372" class="bullet">• Doctor specialty routing</text>
+  <text x="600" y="412" class="bullet">• Human escalation queue</text>
+  <text x="600" y="452" class="bullet">• Clear triage handoff notes</text>
+  <text x="600" y="492" class="bullet">• Follow-up recommendation</text>
+
+  <rect x="1060" y="190" width="470" height="470" class="card3"/>
+  <text x="1095" y="245" class="head">Follow-up Outreach</text>
+  <text x="1095" y="292" class="bullet">• Post-visit callback automation</text>
+  <text x="1095" y="332" class="bullet">• Reminder + check-in journeys</text>
+  <text x="1095" y="372" class="bullet">• Re-open unresolved cases</text>
+  <text x="1095" y="412" class="bullet">• Structured patient summaries</text>
+  <text x="1095" y="452" class="bullet">• Internal queue priorities</text>
+  <text x="1095" y="492" class="bullet">• Better retention workflows</text>
+
+  <rect x="70" y="725" width="1460" height="190" class="shared"/>
+  <text x="105" y="780" class="sharedHead">Shared Framework Capabilities</text>
+  <text x="105" y="825" class="sharedText">RAG fallback memory • API connectors (Cal/Resend) • Policy engine</text>
+  <text x="105" y="860" class="sharedText">Doctor assignment • Postgres/JSON persistence • Dashboard analytics and lifecycle tracking</text>
+</svg>

@@ -1,0 +1,4 @@
+# Development and packaging tools
+pytest>=8.2.0
+build>=1.2.1
+twine>=5.1.1

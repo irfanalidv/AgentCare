@@ -1,0 +1,75 @@
+[project]
+name = "agentcare"
+version = "0.1.0"
+description = "AgentCare framework for healthcare voice AI workflows, scheduling, and patient communications."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "AgentCare Maintainers" }]
+maintainers = [{ name = "AgentCare Maintainers" }]
+keywords = ["voice-ai", "healthcare", "agents", "scheduling", "automation", "fastapi"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "httpx>=0.27.0",
+  "pydantic>=2.6.0",
+  "pydantic-settings>=2.2.0",
+  "python-dotenv>=1.0.1",
+  "typer>=0.12.3",
+  "rich>=13.7.1",
+  "mistralai>=1.0.0",
+]
+
+[project.optional-dependencies]
+web = [
+  "fastapi>=0.110.0",
+  "uvicorn>=0.27.1",
+]
+postgres = [
+  "psycopg[binary]>=3.2.0",
+]
+email = [
+  "resend>=2.0.0",
+]
+semantic = [
+  "ragfallback",
+]
+dev = [
+  "pytest>=8.2.0",
+  "build>=1.2.1",
+  "twine>=5.1.1",
+]
+
+[project.scripts]
+agentcare = "agentcare.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/irfanalidv/AgentCare"
+Documentation = "https://github.com/irfanalidv/AgentCare#readme"
+Source = "https://github.com/irfanalidv/AgentCare"
+Issues = "https://github.com/irfanalidv/AgentCare/issues"
+
+[build-system]
+requires = ["setuptools>=69.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 38px Arial, sans-serif; fill: #ebf3ff; }
+      .sub { font: 400 18px Arial, sans-serif; fill: #9db2d6; }
+      .box { fill: #15243d; stroke: #3e5f8e; stroke-width: 2; rx: 14; }
+      .decision { fill: #1a2a45; stroke: #4f74aa; stroke-width: 2; }
+      .t { font: 700 18px Arial, sans-serif; fill: #d8e8ff; }
+      .d { font: 500 14px Arial, sans-serif; fill: #9fc1f5; }
+      .arrow { stroke: #78adff; stroke-width: 3; fill: none; marker-end: url(#arr); }
+    </style>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#78adff"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg2)"/>
+  <text x="70" y="80" class="title">Call-to-Booking Workflow</text>
+  <text x="70" y="112" class="sub">How AgentCare turns a call into an appointment, email, and analytics</text>
+
+  <rect x="80" y="170" width="230" height="100" class="box"/>
+  <text x="100" y="210" class="t">Incoming Call</text>
+  <text x="100" y="238" class="d">voice event + transcript</text>
+
+  <rect x="360" y="170" width="250" height="100" class="box"/>
+  <text x="380" y="210" class="t">Extract Fields</text>
+  <text x="380" y="238" class="d">intent, reason, contact</text>
+
+  <polygon points="690,170 820,220 690,270 560,220" class="decision"/>
+  <text x="646" y="216" class="t">Missing data?</text>
+  <text x="650" y="240" class="d">name/email/slot</text>
+
+  <rect x="900" y="80" width="260" height="95" class="box"/>
+  <text x="920" y="118" class="t">RAG Backfill</text>
+  <text x="920" y="144" class="d">semantic lookup in memory</text>
+
+  <rect x="900" y="260" width="260" height="95" class="box"/>
+  <text x="920" y="298" class="t">Policy + Risk</text>
+  <text x="920" y="324" class="d">safety + automation checks</text>
+
+  <rect x="1230" y="260" width="280" height="95" class="box"/>
+  <text x="1250" y="298" class="t">Doctor Assignment</text>
+  <text x="1250" y="324" class="d">specialty match from reason</text>
+
+  <rect x="80" y="420" width="310" height="110" class="box"/>
+  <text x="100" y="462" class="t">Slot Check + Booking</text>
+  <text x="100" y="490" class="d">Cal booking API + local mock service</text>
+
+  <rect x="450" y="420" width="280" height="110" class="box"/>
+  <text x="470" y="462" class="t">Confirmation Email</text>
+  <text x="470" y="490" class="d">patient-facing summary</text>
+
+  <rect x="780" y="420" width="330" height="110" class="box"/>
+  <text x="800" y="462" class="t">Persist + Analytics</text>
+  <text x="800" y="490" class="d">DB rows + lifecycle + dashboard</text>
+
+  <rect x="1160" y="420" width="350" height="110" class="box"/>
+  <text x="1180" y="462" class="t">Ops Visibility</text>
+  <text x="1180" y="490" class="d">call detail, summaries, queue action</text>
+
+  <path d="M310,220 L360,220" class="arrow"/>
+  <path d="M610,220 L560,220" class="arrow"/>
+  <path d="M820,220 L900,128" class="arrow"/>
+  <path d="M820,220 L900,307" class="arrow"/>
+  <path d="M1160,307 L1230,307" class="arrow"/>
+  <path d="M1370,355 L1370,420" class="arrow"/>
+  <path d="M1030,355 L1030,420" class="arrow"/>
+  <path d="M900,307 L390,475" class="arrow"/>
+  <path d="M390,475 L450,475" class="arrow"/>
+  <path d="M730,475 L780,475" class="arrow"/>
+  <path d="M1110,475 L1160,475" class="arrow"/>
+
+  <text x="880" y="62" class="d">Yes</text>
+  <text x="836" y="248" class="d">No</text>
+</svg>

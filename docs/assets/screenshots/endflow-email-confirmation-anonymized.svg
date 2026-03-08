@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="860" viewBox="0 0 1400 860">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3f5f9"/>
+      <stop offset="100%" stop-color="#e8edf6"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #112a4a; }
+      .sub { font: 500 14px Arial, sans-serif; fill: #4f6b91; }
+      .mailShell { fill: #ffffff; stroke: #cad6ea; stroke-width: 1.5; rx: 14; }
+      .mailHead { fill: #0e1d3a; }
+      .h1 { font: 700 38px Arial, sans-serif; fill: #f2f7ff; }
+      .h2 { font: 500 17px Arial, sans-serif; fill: #c6d7f3; }
+      .k { font: 600 16px Arial, sans-serif; fill: #5a6f8f; }
+      .v { font: 500 16px Arial, sans-serif; fill: #1d3657; }
+      .meta { font: 500 13px Arial, sans-serif; fill: #738caf; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="860" fill="url(#bg2)"/>
+  <text x="40" y="54" class="title">Confirmation Email (Anonymized)</text>
+  <text x="40" y="80" class="sub">End-of-flow preview: patient-facing message with masked identifiers.</text>
+
+  <rect x="210" y="110" width="980" height="690" class="mailShell"/>
+  <rect x="210" y="110" width="980" height="120" class="mailHead"/>
+  <text x="250" y="174" class="h1">Appointment Confirmed</text>
+  <text x="250" y="206" class="h2">AgentCare</text>
+
+  <text x="250" y="280" class="v">Hi Patient A,</text>
+  <text x="250" y="316" class="v">Your appointment is scheduled. Please keep this confirmation for your records.</text>
+
+  <text x="250" y="376" class="k">Confirmation ID</text>
+  <text x="520" y="376" class="v">booking_xxxxxxxx</text>
+
+  <text x="250" y="418" class="k">Date &amp; time</text>
+  <text x="520" y="418" class="v">Monday, 09 Mar 2026 at 10:00 PM (IST)</text>
+
+  <text x="250" y="460" class="k">Assigned doctor</text>
+  <text x="520" y="460" class="v">Dr. Assigned (Orthopedics)</text>
+
+  <text x="250" y="502" class="k">Reason for visit</text>
+  <text x="520" y="502" class="v">neck pain</text>
+
+  <text x="250" y="544" class="k">Call summary</text>
+  <text x="520" y="544" class="v">Appointment booked for follow-up on neck pain and sleep concern.</text>
+
+  <text x="250" y="586" class="k">Call duration</text>
+  <text x="520" y="586" class="v">40 seconds</text>
+
+  <text x="250" y="648" class="v">If you need to reschedule or update details, reply to this email.</text>
+  <text x="250" y="682" class="v">- AgentCare</text>
+
+  <text x="250" y="744" class="meta">Recipient: patient@masked-domain.com • Sender: contact@masked-domain.com</text>
+</svg>

@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentCare Operations Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #f4f8ff;
+        --ink: #0f1f3d;
+        --muted: #5b7097;
+        --brand: #0b2b67;
+        --line: #d9e7fb;
+        --card: #ffffff;
+        --success: #0f8a63;
+        --warn: #b06907;
+        --danger: #c0392b;
+        --accent: #1d4ed8;
+        font-family: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: radial-gradient(circle at 0% 0%, #e9f2ff 0%, var(--bg) 42%, #eef4ff 100%);
+        color: var(--ink);
+      }
+      .container { max-width: 1240px; margin: 0 auto; }
+      .row { display: grid; gap: 12px; }
+      .row-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 8px 24px rgba(23, 62, 112, 0.06);
+      }
+      h1,h2,h3 { margin: 0 0 8px 0; font-family: "Manrope", "IBM Plex Sans", sans-serif; }
+      h1 { font-size: 34px; letter-spacing: -0.02em; color: var(--brand); }
+      h3 { color: #123a7a; font-size: 17px; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .value { font-size: 30px; font-weight: 800; color: #0a2f73; font-family: "Manrope", sans-serif; }
+      label { font-size: 12px; color: #4f6691; display: block; margin-bottom: 4px; font-weight: 600; }
+      input, select, button {
+        border-radius: 10px; border: 1px solid #cbdcf6; background: #fff; color: #0f1f3d;
+        padding: 8px 10px; font-size: 14px;
+      }
+      button {
+        cursor: pointer;
+        background: linear-gradient(135deg, #1f7fd6 0%, #0ea5a8 100%);
+        color: #fff;
+        border: none;
+        font-weight: 600;
+      }
+      button:hover { opacity: 0.94; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border-bottom: 1px solid #e6eefc; text-align: left; padding: 9px 8px; vertical-align: top; }
+      th {
+        color: #3a5483;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 11px;
+      }
+      tbody tr:hover { background: #f8fbff; }
+      .clickable-row { cursor: pointer; }
+      canvas { width: 100%; height: 220px; background: #f8fbff; border-radius: 10px; border: 1px solid #d5e5fb; }
+      .controls { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+      .ok { color: var(--success); }
+      .warn { color: var(--warn); }
+      .danger { color: var(--danger); }
+      .pill {
+        border: 1px solid #cfe0fb;
+        background: #f1f7ff;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 12px;
+        display: inline-block;
+      }
+      .brand-hero {
+        margin-bottom: 14px;
+        border-radius: 16px;
+        padding: 18px 20px;
+        border: 1px solid #d6e8ff;
+        background: linear-gradient(120deg, #eff6ff 0%, #ffffff 45%, #ecfeff 100%);
+      }
+      .brand-kicker {
+        color: #0b7db2;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .status-ok { background: #e6f8f1; color: #0f8a63; }
+      .status-warn { background: #fff5e6; color: #b06907; }
+      .status-danger { background: #fdecec; color: #c0392b; }
+      .detail-block {
+        border: 1px solid #e5ecf9;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fbfdff;
+      }
+      .detail-title {
+        font-size: 12px;
+        color: #4f6691;
+        font-weight: 700;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .detail-text {
+        margin: 0;
+        color: #13294d;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+      .optional { display: none; }
+      @media (max-width: 900px) {
+        .row-4, .row-2 { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand-hero">
+        <div class="brand-kicker">AgentCare Platform</div>
+        <h1>Call Console</h1>
+        <div class="muted">Patient communication, appointment orchestration, and operations visibility in one dashboard.</div>
+      </div>
+
+      <div class="row row-2" style="margin-bottom: 12px;">
+        <div class="card">
+          <h3>Call A Number</h3>
+          <div class="controls">
+            <div>
+              <label>Phone Number (E.164)</label>
+              <input id="callPhone" placeholder="+14155552671" />
+            </div>
+            <div>
+              <label>Customer Name (optional)</label>
+              <input id="callName" placeholder="Ava Patel" />
+            </div>
+            <div>
+              <button id="callNowBtn">Call Now</button>
+            </div>
+          </div>
+          <div class="muted" style="margin-top: 8px;" id="callStatus">Ready</div>
+          <div class="muted" style="margin-top: 4px;" id="callLifecycle">lifecycle: -</div>
+          <div style="margin-top: 8px;">
+            <span class="pill" id="lastExecution">execution_id: -</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Workflow Status</h3>
+          <div class="controls">
+            <button id="workflowRefreshBtn">Refresh Status</button>
+          </div>
+          <table style="margin-top: 10px;">
+            <tbody id="workflowRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card optional" style="margin-bottom: 12px;">
+        <div class="controls">
+          <div>
+            <label>Analytics API Base URL</label>
+            <input id="baseUrl" value="http://localhost:8040" style="min-width: 320px;" />
+          </div>
+          <div>
+            <label>From (optional)</label>
+            <input id="fromTs" placeholder="2026-03-01T00:00:00Z" />
+          </div>
+          <div>
+            <label>To (optional)</label>
+            <input id="toTs" placeholder="2026-03-31T23:59:59Z" />
+          </div>
+          <div>
+            <label>Interval</label>
+            <select id="interval">
+              <option value="day">day</option>
+              <option value="hour">hour</option>
+              <option value="week">week</option>
+            </select>
+          </div>
+          <div>
+            <button id="refreshBtn">Refresh</button>
+          </div>
+          <div class="muted" id="statusText"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Operational Case Queue</h3>
+        <div class="controls" style="margin-bottom: 8px;">
+          <button id="refreshCasesBtn">Refresh Queue</button>
+          <div class="muted" id="casesSummary">-</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Segment</th>
+              <th>Category</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Slot</th>
+              <th>Purpose</th>
+              <th>Doctor</th>
+              <th>Conflict</th>
+              <th>Next Action</th>
+            </tr>
+          </thead>
+          <tbody id="caseRows"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Recent Executions</h3>
+        <div class="controls" style="margin-bottom: 8px;">
+          <button id="refreshExecBtn">Refresh Executions</button>
+          <div class="muted">Pulled from Bolna via dashboard backend API.</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Execution ID</th>
+              <th>Status</th>
+              <th>To</th>
+              <th>Duration</th>
+              <th>Cost</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody id="execRows"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Call Detail</h3>
+        <div class="muted" style="margin-bottom: 10px;">Click any execution row, appointment row, or case row to inspect patient/internal summaries.</div>
+        <div class="row row-2">
+          <div class="detail-block">
+            <div class="detail-title">Patient-Facing Summary <button id="copyPatientSummaryBtn" class="secondary">Copy</button></div>
+            <p id="detailPatientSummary" class="detail-text">Select a call to view details.</p>
+          </div>
+          <div class="detail-block">
+            <div class="detail-title">Internal Ops Summary <button id="copyOpsSummaryBtn" class="secondary">Copy</button></div>
+            <p id="detailOpsSummary" class="detail-text">Select a call to view details.</p>
+          </div>
+        </div>
+        <div class="muted" id="detailMeta" style="margin-top: 8px;">execution: -</div>
+      </div>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Appointments & Visit Details</h3>
+        <div class="controls" style="margin-bottom: 8px;">
+          <button id="refreshApptBtn">Refresh Appointments</button>
+          <div class="muted">Booked and pending scheduling, with doctor fit + visit purpose.</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Appointment</th>
+              <th>Status</th>
+              <th>Patient</th>
+              <th>Segment</th>
+              <th>Phone</th>
+              <th>Patient Email</th>
+              <th>Slot</th>
+              <th>Calendar</th>
+              <th>Email Delivery</th>
+              <th>Purpose</th>
+              <th>Doctor</th>
+            </tr>
+          </thead>
+          <tbody id="apptRows"></tbody>
+        </table>
+      </div>
+
+      <div class="row row-4 optional" style="margin-bottom: 12px;">
+        <div class="card"><h3>Total Calls</h3><div class="value" id="mTotalCalls">-</div></div>
+        <div class="card"><h3>Completion Rate</h3><div class="value" id="mCompletionRate">-</div></div>
+        <div class="card"><h3>Avg Duration (s)</h3><div class="value" id="mAvgDuration">-</div></div>
+        <div class="card"><h3>Total Cost</h3><div class="value" id="mTotalCost">-</div></div>
+      </div>
+
+      <div class="row row-2 optional" style="margin-bottom: 12px;">
+        <div class="card">
+          <h3>Funnel</h3>
+          <table>
+            <tbody>
+              <tr><th>Calls Started</th><td id="fCalls">-</td></tr>
+              <tr><th>Appointment Intents</th><td id="fIntents">-</td></tr>
+              <tr><th>Bookings Created</th><td id="fBookings">-</td></tr>
+              <tr><th>Follow-ups Required</th><td id="fFollowups">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Customer Cohorts</h3>
+          <table>
+            <tbody>
+              <tr><th>New Customers</th><td id="cNew">-</td></tr>
+              <tr><th>Returning Customers</th><td id="cReturning">-</td></tr>
+              <tr><th>Repeat Customers</th><td id="cRepeat">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card optional">
+        <h3>Calls Timeseries</h3>
+        <canvas id="chart" width="1100" height="260"></canvas>
+        <table style="margin-top: 10px;">
+          <thead>
+            <tr>
+              <th>Bucket</th>
+              <th>Total Calls</th>
+              <th>Completed</th>
+              <th>Total Cost</th>
+            </tr>
+          </thead>
+          <tbody id="tsRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const dashboardApiBase = "";
+      let latestAppointmentsByExec = {};
+      let latestCasesByExec = {};
+
+      async function fetchJson(path, extraParams) {
+        const base = "http://localhost:8040";
+        const params = new URLSearchParams();
+        if (extraParams) for (const [k, v] of Object.entries(extraParams)) params.set(k, v);
+        const url = `${base}${path}${params.toString() ? `?${params}` : ""}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return res.json();
+      }
+
+      async function fetchDashboardJson(path, options) {
+        const timeoutMs = 12000;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const merged = { ...(options || {}), signal: controller.signal };
+        let res;
+        try {
+          res = await fetch(`${dashboardApiBase}${path}`, merged);
+        } catch (e) {
+          if (e && e.name === "AbortError") {
+            throw new Error(`request timeout after ${timeoutMs / 1000}s`);
+          }
+          throw e;
+        } finally {
+          clearTimeout(timer);
+        }
+        if (!res.ok) {
+          let detail = `${res.status} ${res.statusText}`;
+          try {
+            const body = await res.json();
+            if (body && body.detail) detail = body.detail;
+          } catch (_) {}
+          throw new Error(detail);
+        }
+        return res.json();
+      }
+
+      function escapeHtml(input) {
+        return String(input || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function escapeAttr(input) {
+        return String(input || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function formatStatusChip(status) {
+        const s = String(status || "").toLowerCase();
+        const safe = escapeHtml(status || "-");
+        if (["completed", "booked", "connected"].includes(s)) {
+          return `<span class="status-chip status-ok">${safe}</span>`;
+        }
+        if (["failed", "error", "cancelled", "canceled"].includes(s)) {
+          return `<span class="status-chip status-danger">${safe}</span>`;
+        }
+        return `<span class="status-chip status-warn">${safe}</span>`;
+      }
+
+      function setStatus(msg, ok = true) {
+        const s = el("statusText");
+        s.className = ok ? "ok" : "warn";
+        s.textContent = msg;
+      }
+
+      function drawChart(rows) {
+        const canvas = el("chart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!rows.length) {
+          ctx.fillStyle = "#9db0d6";
+          ctx.fillText("No timeseries data", 20, 40);
+          return;
+        }
+
+        const pad = 30;
+        const w = canvas.width - pad * 2;
+        const h = canvas.height - pad * 2;
+        const maxY = Math.max(...rows.map(r => r.total_calls), 1);
+        const stepX = rows.length > 1 ? w / (rows.length - 1) : 0;
+
+        ctx.strokeStyle = "#2a3550";
+        ctx.strokeRect(pad, pad, w, h);
+
+        // total calls line
+        ctx.beginPath();
+        ctx.strokeStyle = "#5ea1ff";
+        rows.forEach((r, i) => {
+          const x = pad + i * stepX;
+          const y = pad + h - (r.total_calls / maxY) * h;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // completed calls line
+        ctx.beginPath();
+        ctx.strokeStyle = "#7ee787";
+        rows.forEach((r, i) => {
+          const x = pad + i * stepX;
+          const y = pad + h - (r.completed_calls / maxY) * h;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      function renderTsRows(rows) {
+        const body = el("tsRows");
+        body.innerHTML = rows.map((r) => `
+          <tr>
+            <td>${r.bucket}</td>
+            <td>${r.total_calls}</td>
+            <td>${r.completed_calls}</td>
+            <td>${Number(r.total_cost || 0).toFixed(3)}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderExecRows(rows) {
+        const body = el("execRows");
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="6" class="muted">No recent executions yet.</td></tr>`;
+          return;
+        }
+        body.innerHTML = rows.map((r) => `
+          <tr class="clickable-row" data-exec="${r.execution_id || ""}">
+            <td>${escapeHtml(r.execution_id || "-")}</td>
+            <td>${formatStatusChip(r.status || "-")}</td>
+            <td>${escapeHtml(r.to_number || "-")}</td>
+            <td>${Number(r.conversation_time || 0).toFixed(1)}</td>
+            <td>${Number(r.total_cost || 0).toFixed(3)}</td>
+            <td>${escapeHtml(r.created_at || "-")}</td>
+          </tr>
+        `).join("");
+      }
+
+      function formatSlot(value) {
+        if (!value) return "-";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value; // keep original if non-ISO text
+        try {
+          return new Intl.DateTimeFormat("en-IN", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+            timeZoneName: "short",
+          }).format(d);
+        } catch (_) {
+          return d.toLocaleString();
+        }
+      }
+
+      function formatCalendarCell(row) {
+        const url = String(row.calendar_booking_url || "").trim();
+        const bookingId = row.calendar_booking_id ? `id: ${escapeHtml(row.calendar_booking_id)}` : "";
+        const status = row.calendar_booking_status ? `status: ${escapeHtml(row.calendar_booking_status)}` : "";
+        const details = [bookingId, status].filter(Boolean);
+        if (url) {
+          const safeUrl = escapeAttr(url);
+          const detailBlock = details.length ? `<br/><span class="muted">${details.join(" | ")}</span>` : "";
+          return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">Open booking</a>${detailBlock}`;
+        }
+        return details.length ? details.join("<br/>") : "-";
+      }
+
+      function formatEmailDeliveryCell(row) {
+        const status = row.email_delivery_status || "unknown";
+        const sentAt = row.email_sent_at ? formatSlot(row.email_sent_at) : "-";
+        const error = row.email_delivery_error ? escapeHtml(row.email_delivery_error) : "";
+        const deliveryId = row.email_delivery_id ? `id: ${escapeHtml(row.email_delivery_id)}` : "";
+        const subject = row.email_subject ? `subject: ${escapeHtml(row.email_subject)}` : "";
+        const meta = [deliveryId, subject].filter(Boolean).join(" | ");
+        return `
+          <div>${formatStatusChip(status)}</div>
+          <div class="muted">${escapeHtml(sentAt)}</div>
+          ${meta ? `<div class="muted">${meta}</div>` : ""}
+          ${error ? `<div class="danger">${error}</div>` : ""}
+        `;
+      }
+
+      function renderApptRows(rows) {
+        const body = el("apptRows");
+        latestAppointmentsByExec = {};
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="11" class="muted">No appointments available.</td></tr>`;
+          return;
+        }
+        rows.forEach((r) => {
+          if (r.source_execution_id) latestAppointmentsByExec[r.source_execution_id] = r;
+        });
+        body.innerHTML = rows.map((r) => `
+          <tr class="clickable-row" data-exec="${r.source_execution_id || ""}">
+            <td>${escapeHtml(r.appointment_id || "-")}</td>
+            <td>${formatStatusChip(r.status || "-")}</td>
+            <td>${escapeHtml(r.patient_name || "-")}</td>
+            <td>${escapeHtml(r.customer_segment || "-")}</td>
+            <td>${escapeHtml(r.patient_phone || "-")}</td>
+            <td>${escapeHtml(r.patient_email || r.email_to || "-")}</td>
+            <td>${formatSlot(r.slot_start)}</td>
+            <td>${formatCalendarCell(r)}</td>
+            <td>${formatEmailDeliveryCell(r)}</td>
+            <td>${escapeHtml(r.purpose || "-")}</td>
+            <td>${escapeHtml(r.assigned_doctor_name || "-")} (${escapeHtml(r.assigned_doctor_specialty || "-")})</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderCaseRows(rows) {
+        const body = el("caseRows");
+        latestCasesByExec = {};
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="10" class="muted">No cases in queue.</td></tr>`;
+          return;
+        }
+        rows.forEach((r) => {
+          if (r.last_execution_id) latestCasesByExec[r.last_execution_id] = r;
+        });
+        body.innerHTML = rows.map((r) => `
+          <tr class="clickable-row" data-exec="${r.last_execution_id || ""}">
+            <td>${escapeHtml(r.patient_name || "-")}<br/><span class="muted">${escapeHtml(r.patient_phone || "-")}</span></td>
+            <td>${escapeHtml(r.customer_segment || "-")}</td>
+            <td>${escapeHtml((r.care_category || "-").replaceAll("_"," "))}</td>
+            <td class="${(r.risk_level || "low") === "high" ? "danger" : ((r.risk_level || "low") === "medium" ? "warn" : "ok")}">${r.risk_level || "-"}</td>
+            <td>${formatStatusChip(r.latest_status || "-")}</td>
+            <td>${formatSlot(r.slot_start)}</td>
+            <td>${escapeHtml(r.purpose || "-")}</td>
+            <td>${escapeHtml(r.assigned_doctor_name || "-")} (${escapeHtml(r.assigned_doctor_specialty || "-")})</td>
+            <td class="${r.conflicts?.has_conflict ? "danger" : "ok"}">${r.conflicts?.has_conflict ? "yes" : "no"}</td>
+            <td>${escapeHtml(r.recommended_action || "-")}</td>
+          </tr>
+        `).join("");
+      }
+
+      async function renderCallDetail(executionId) {
+        if (!executionId) return;
+        try {
+          const data = await fetchJson(`/analytics/calls/${encodeURIComponent(executionId)}`);
+          if (!data.ok || !data.row) throw new Error(data.error || "not_found");
+          const row = data.row || {};
+          const ex = row.extracted_data || {};
+          const patientSummary = row.patient_facing_summary || ex.patient_facing_summary || "Not available";
+          const opsSummary = row.internal_ops_summary || ex.internal_ops_summary || "Not available";
+          el("detailPatientSummary").textContent = patientSummary;
+          el("detailOpsSummary").textContent = opsSummary;
+          el("detailMeta").textContent =
+            `execution: ${row.execution_id || "-"} | status: ${row.status || "-"} | appointment: ${row.appointment_id || "-"}`;
+        } catch (e) {
+          // Fallback to data loaded in dashboard rows when analytics detail is missing.
+          const appt = latestAppointmentsByExec[executionId];
+          const kase = latestCasesByExec[executionId];
+          el("detailPatientSummary").textContent =
+            (appt && (appt.summary || appt.purpose)) || "Call detail unavailable from analytics.";
+          el("detailOpsSummary").textContent =
+            (kase && `${kase.recommended_action || "-"} | ${kase.purpose || "-"}`) || "Call detail unavailable from analytics.";
+          el("detailMeta").textContent = `execution: ${executionId} | detail source fallback`;
+        }
+      }
+
+      async function refreshCasesQueue() {
+        try {
+          const data = await fetchDashboardJson("/api/cases/queue");
+          renderCaseRows(data.rows || []);
+          const s = data.summary || {};
+          el("casesSummary").textContent =
+            `Cases: ${s.total_cases || 0} | Urgent Triage: ${s.urgent_triage || 0} | Review: ${s.needs_human_review || 0} | Need Email: ${s.needs_email || 0} | Ready to Book: ${s.ready_to_book || 0} | Confirmed: ${s.confirmed || 0}`;
+        } catch (e) {
+          el("caseRows").innerHTML = `<tr><td colspan="10" class="danger">Failed: ${e.message}</td></tr>`;
+          el("casesSummary").textContent = "Failed to load queue";
+        }
+      }
+
+      async function refreshExecutions() {
+        try {
+          const data = await fetchDashboardJson("/api/executions/recent");
+          renderExecRows(data.rows || []);
+        } catch (e) {
+          el("execRows").innerHTML = `<tr><td colspan="6" class="danger">Failed: ${e.message}</td></tr>`;
+        }
+      }
+
+      async function refreshAppointments() {
+        try {
+          const data = await fetchDashboardJson("/api/appointments/summary");
+          renderApptRows(data.rows || []);
+        } catch (e) {
+          el("apptRows").innerHTML = `<tr><td colspan="11" class="danger">Failed: ${e.message}</td></tr>`;
+        }
+      }
+
+      async function refreshWorkflow() {
+        try {
+          const data = await fetchDashboardJson("/api/workflow/status");
+          const checks = data.checks || {};
+          const entries = Object.entries(checks);
+          el("workflowRows").innerHTML = entries.map(([name, v]) => `
+            <tr>
+              <th>${name}</th>
+              <td class="${v.ok ? "ok" : "danger"}">${v.ok ? "ok" : "down"}</td>
+              <td>${v.status_code || v.error || "-"}</td>
+            </tr>
+          `).join("");
+        } catch (e) {
+          el("workflowRows").innerHTML = `<tr><td class="danger">Failed: ${e.message}</td></tr>`;
+        }
+      }
+
+      function humanStatusLabel(status) {
+        const s = (status || "").toLowerCase();
+        if (!s) return "unknown";
+        return s.replaceAll("_", " ");
+      }
+
+      function isTerminalStatus(status) {
+        const s = (status || "").toLowerCase();
+        return ["completed", "failed", "error", "no_answer", "busy", "canceled", "cancelled", "voicemail", "ended"].includes(s);
+      }
+
+      async function pollExecutionStatus(execId, attempts = 10) {
+        for (let i = 0; i < attempts; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const s = await fetchDashboardJson(`/api/call/status/${encodeURIComponent(execId)}`);
+          try {
+            const life = await fetchDashboardJson(`/api/call/lifecycle/${encodeURIComponent(execId)}`);
+            el("callLifecycle").textContent = `lifecycle: ${humanStatusLabel(life.current_state || "unknown")}`;
+          } catch (_) {}
+          const label = humanStatusLabel(s.status);
+          if (s.terminal) return s;
+          el("callStatus").className = "warn";
+          el("callStatus").textContent = `Call in progress: ${label}`;
+        }
+        return null;
+      }
+
+      async function callNow() {
+        const phone = el("callPhone").value.trim();
+        const customerName = el("callName").value.trim();
+        if (!phone) {
+          el("callStatus").className = "danger";
+          el("callStatus").textContent = "Phone number is required";
+          return;
+        }
+        try {
+          el("callStatus").className = "muted";
+          el("callStatus").textContent = "Placing call...";
+          const payload = { phone_number: phone };
+          if (customerName) payload.customer_name = customerName;
+          payload.wait_for_outcome = true;
+          const res = await fetchDashboardJson("/api/call", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const execId = res.execution_id || "-";
+          el("lastExecution").textContent = `execution_id: ${execId}`;
+          if (execId !== "-") {
+            try {
+              const life = await fetchDashboardJson(`/api/call/lifecycle/${encodeURIComponent(execId)}`);
+              el("callLifecycle").textContent = `lifecycle: ${humanStatusLabel(life.current_state || "unknown")}`;
+            } catch (_) {
+              el("callLifecycle").textContent = "lifecycle: -";
+            }
+          } else {
+            el("callLifecycle").textContent = "lifecycle: -";
+          }
+          const effective = (res.effective_status || res.status || "").toLowerCase();
+          if (effective === "completed") {
+            el("callStatus").className = "ok";
+            el("callStatus").textContent = "Call connected and completed.";
+          } else {
+            el("callStatus").className = "warn";
+            el("callStatus").textContent = `Call status: ${humanStatusLabel(effective || "queued")}`;
+            if (execId !== "-" && !isTerminalStatus(effective)) {
+              // Keep polling for real outcome so long calls don't stay stale in UI.
+              const final = await pollExecutionStatus(execId, 120);
+              if (final) {
+                const label = humanStatusLabel(final.status);
+                el("callStatus").className = final.status === "completed" ? "ok" : "warn";
+                el("callStatus").textContent = `Final status: ${label}`;
+              }
+            }
+          }
+          await Promise.all([refreshExecutions(), refreshAppointments(), refreshCasesQueue(), refreshAll()]);
+          if (execId !== "-") {
+            await renderCallDetail(execId);
+          }
+        } catch (e) {
+          el("callStatus").className = "danger";
+          el("callStatus").textContent = `Call failed: ${e.message}`;
+        }
+      }
+
+      async function checkDashboardVersion() {
+        try {
+          const v = await fetchDashboardJson("/api/dashboard/version");
+          const current = (window.__dashboardVersion || null);
+          if (!current) {
+            window.__dashboardVersion = v.version;
+            return;
+          }
+          if (v.version && current !== v.version) {
+            window.location.reload();
+          }
+        } catch (_) {
+          // keep UI resilient if version endpoint temporarily fails
+        }
+      }
+
+      async function refreshAll() {
+        try {
+          setStatus("Loading...", true);
+          const [overview, funnel, cohorts, ts] = await Promise.all([
+            fetchJson("/analytics/overview"),
+            fetchJson("/analytics/funnel"),
+            fetchJson("/analytics/customers/cohorts"),
+            fetchJson("/analytics/calls/timeseries", { interval: el("interval").value }),
+          ]);
+
+          el("mTotalCalls").textContent = overview.total_calls ?? 0;
+          el("mCompletionRate").textContent = `${((overview.completion_rate || 0) * 100).toFixed(1)}%`;
+          el("mAvgDuration").textContent = Number(overview.avg_conversation_time || 0).toFixed(1);
+          el("mTotalCost").textContent = Number(overview.total_cost || 0).toFixed(3);
+
+          el("fCalls").textContent = funnel.calls_started ?? 0;
+          el("fIntents").textContent = funnel.appointment_intents ?? 0;
+          el("fBookings").textContent = funnel.bookings_created ?? 0;
+          el("fFollowups").textContent = funnel.followups_required ?? 0;
+
+          el("cNew").textContent = cohorts.new_customers ?? 0;
+          el("cReturning").textContent = cohorts.returning_customers ?? 0;
+          el("cRepeat").textContent = cohorts.repeat_customers ?? 0;
+
+          const rows = ts.rows || [];
+          drawChart(rows);
+          renderTsRows(rows);
+          setStatus(`Updated at ${new Date().toLocaleTimeString()}`, true);
+        } catch (e) {
+          setStatus(`Failed: ${e.message}`, false);
+        }
+      }
+
+      async function copySummary(text) {
+        try {
+          await navigator.clipboard.writeText(String(text || ""));
+          setStatus("Summary copied to clipboard", true);
+        } catch (_) {
+          setStatus("Unable to copy summary", false);
+        }
+      }
+
+      el("refreshBtn").addEventListener("click", refreshAll);
+      el("refreshExecBtn").addEventListener("click", refreshExecutions);
+      el("refreshApptBtn").addEventListener("click", refreshAppointments);
+      el("refreshCasesBtn").addEventListener("click", refreshCasesQueue);
+      el("workflowRefreshBtn").addEventListener("click", refreshWorkflow);
+      el("callNowBtn").addEventListener("click", callNow);
+      el("copyPatientSummaryBtn").addEventListener("click", () => copySummary(el("detailPatientSummary").textContent));
+      el("copyOpsSummaryBtn").addEventListener("click", () => copySummary(el("detailOpsSummary").textContent));
+      document.addEventListener("click", (evt) => {
+        const tr = evt.target && evt.target.closest ? evt.target.closest("tr[data-exec]") : null;
+        if (!tr) return;
+        const execId = tr.getAttribute("data-exec");
+        if (!execId) return;
+        renderCallDetail(execId);
+      });
+      refreshAll();
+      refreshCasesQueue();
+      refreshExecutions();
+      refreshAppointments();
+      refreshWorkflow();
+      setInterval(refreshAll, 30000);
+      setInterval(refreshExecutions, 10000);
+      setInterval(refreshAppointments, 10000);
+      setInterval(refreshCasesQueue, 10000);
+      setInterval(refreshWorkflow, 10000);
+      checkDashboardVersion();
+      setInterval(checkDashboardVersion, 5000);
+    </script>
+  </body>
+</html>
+

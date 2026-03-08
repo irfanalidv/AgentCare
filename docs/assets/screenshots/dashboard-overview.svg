@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080f1f"/>
+      <stop offset="100%" stop-color="#121d33"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 36px Arial, sans-serif; fill: #ebf2ff; }
+      .sub { font: 500 16px Arial, sans-serif; fill: #9eb3d9; }
+      .h { font: 700 20px Arial, sans-serif; fill: #d9e8ff; }
+      .txt { font: 500 14px Arial, sans-serif; fill: #a9bee1; }
+      .muted { font: 500 13px Arial, sans-serif; fill: #7f97bf; }
+      .tableh { font: 700 12px Arial, sans-serif; fill: #95afd9; }
+      .tablev { font: 500 12px Arial, sans-serif; fill: #d4e4ff; }
+      .ok { fill: #1fb874; }
+      .warn { fill: #e0a22f; }
+      .chipText { font: 700 11px Arial, sans-serif; fill: #0c1322; }
+      .card { fill: #101c33; stroke: #243a62; stroke-width: 1.5; rx: 14; }
+      .in { fill: #0c1629; stroke: #1f3257; stroke-width: 1; rx: 10; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1080" fill="url(#bg)"/>
+
+  <!-- Header -->
+  <rect x="26" y="18" width="1548" height="80" class="card"/>
+  <text x="52" y="64" class="title">AgentCare Platform</text>
+  <text x="390" y="64" class="h">Call Console</text>
+  <text x="52" y="88" class="sub">Patient communication, appointment orchestration, and operations visibility in one dashboard.</text>
+  <text x="52" y="106" class="muted">Sample data only (anonymized).</text>
+  <circle cx="1516" cy="57" r="9" class="ok"/>
+
+  <!-- Row 1: Call panel + workflow status -->
+  <rect x="26" y="114" width="760" height="170" class="card"/>
+  <text x="48" y="145" class="h">Call A Number</text>
+  <text x="48" y="168" class="muted">Phone Number (E.164)</text>
+  <rect x="48" y="178" width="280" height="34" class="in"/>
+  <text x="60" y="200" class="txt">+1XXXXXXXX67</text>
+  <text x="350" y="168" class="muted">Customer Name (optional)</text>
+  <rect x="350" y="178" width="220" height="34" class="in"/>
+  <text x="362" y="200" class="txt">Irfan</text>
+  <rect x="590" y="178" width="120" height="34" rx="10" fill="#2563eb"/>
+  <text x="624" y="200" font-size="13" font-family="Arial, sans-serif" font-weight="700" fill="#eef5ff">Call Now</text>
+  <rect x="48" y="232" width="90" height="24" rx="12" fill="#1fb874"/>
+  <text x="75" y="249" class="chipText">Ready</text>
+  <text x="160" y="248" class="txt">lifecycle: -</text>
+  <text x="260" y="248" class="txt">execution_id: sample</text>
+
+  <rect x="804" y="114" width="770" height="170" class="card"/>
+  <text x="826" y="145" class="h">Workflow Status</text>
+  <rect x="826" y="157" width="728" height="110" class="in"/>
+  <text x="846" y="183" class="tableh">SERVICE</text>
+  <text x="1020" y="183" class="tableh">STATUS</text>
+  <text x="1115" y="183" class="tableh">CODE</text>
+  <text x="846" y="208" class="tablev">llm_gateway</text><text x="1020" y="208" class="tablev">ok</text><text x="1115" y="208" class="tablev">200</text>
+  <text x="846" y="229" class="tablev">mock_ehr</text><text x="1020" y="229" class="tablev">ok</text><text x="1115" y="229" class="tablev">200</text>
+  <text x="846" y="250" class="tablev">webhooks</text><text x="1020" y="250" class="tablev">ok</text><text x="1115" y="250" class="tablev">200</text>
+  <text x="846" y="271" class="tablev">analytics</text><text x="1020" y="271" class="tablev">ok</text><text x="1115" y="271" class="tablev">200</text>
+
+  <!-- Row 2: Operational Case Queue -->
+  <rect x="26" y="304" width="1548" height="208" class="card"/>
+  <text x="48" y="336" class="h">Operational Case Queue</text>
+  <text x="48" y="360" class="txt">Cases: 1 | Urgent Triage: 0 | Review: 1 | Need Email: 0 | Ready to Book: 0 | Confirmed: 0</text>
+  <rect x="48" y="372" width="1504" height="124" class="in"/>
+  <text x="60" y="392" class="tableh">PATIENT</text>
+  <text x="250" y="392" class="tableh">SEGMENT</text>
+  <text x="340" y="392" class="tableh">CATEGORY</text>
+  <text x="430" y="392" class="tableh">RISK</text>
+  <text x="505" y="392" class="tableh">STATUS</text>
+  <text x="610" y="392" class="tableh">SLOT</text>
+  <text x="840" y="392" class="tableh">PURPOSE</text>
+  <text x="1145" y="392" class="tableh">DOCTOR</text>
+  <text x="1305" y="392" class="tableh">CONFLICT</text>
+  <text x="1395" y="392" class="tableh">NEXT ACTION</text>
+  <text x="60" y="416" class="tablev">Sample Patient +1XXXXXXXX67</text>
+  <text x="250" y="416" class="tablev">repeat</text>
+  <text x="340" y="416" class="tablev">-</text>
+  <text x="430" y="416" class="tablev">low</text>
+  <text x="505" y="416" class="tablev">rescheduled</text>
+  <text x="610" y="416" class="tablev">Sun, 08 Mar, 2026, 8:00 pm IST</text>
+  <text x="840" y="416" class="tablev">pain in my neck, not able to sleep properly</text>
+  <text x="1145" y="416" class="tablev">Dr. Kavya Rao (Psychiatry)</text>
+  <text x="1305" y="416" class="tablev">yes</text>
+  <text x="1395" y="416" class="tablev">human_review_conflict</text>
+
+  <!-- Row 3: Recent Executions -->
+  <rect x="26" y="532" width="980" height="324" class="card"/>
+  <text x="48" y="564" class="h">Recent Executions</text>
+  <text x="48" y="586" class="muted">Pulled from Bolna via dashboard backend API.</text>
+  <rect x="48" y="598" width="936" height="242" class="in"/>
+  <text x="60" y="618" class="tableh">EXECUTION ID</text>
+  <text x="370" y="618" class="tableh">STATUS</text>
+  <text x="450" y="618" class="tableh">TO</text>
+  <text x="580" y="618" class="tableh">DURATION</text>
+  <text x="670" y="618" class="tableh">COST</text>
+  <text x="760" y="618" class="tableh">CREATED AT</text>
+
+  <text x="60" y="642" class="tablev">exec_a1f9c2e7</text><text x="370" y="642" class="tablev">completed</text><text x="450" y="642" class="tablev">+1XXXXXXXX67</text><text x="580" y="642" class="tablev">0.0</text><text x="670" y="642" class="tablev">4.760</text><text x="760" y="642" class="tablev">2026-03-06T19:59:38Z</text>
+  <text x="60" y="665" class="tablev">exec_b4d2a8f1</text><text x="370" y="665" class="tablev">completed</text><text x="450" y="665" class="tablev">+1XXXXXXXX67</text><text x="580" y="665" class="tablev">0.0</text><text x="670" y="665" class="tablev">4.490</text><text x="760" y="665" class="tablev">2026-03-06T19:12:20Z</text>
+  <text x="60" y="688" class="tablev">exec_c8e3b91a</text><text x="370" y="688" class="tablev">busy</text><text x="450" y="688" class="tablev">+1XXXXXXXX67</text><text x="580" y="688" class="tablev">0.0</text><text x="670" y="688" class="tablev">0.000</text><text x="760" y="688" class="tablev">2026-03-06T20:01:09Z</text>
+  <text x="60" y="711" class="tablev">exec_d7a6f4c2</text><text x="370" y="711" class="tablev">completed</text><text x="450" y="711" class="tablev">+1XXXXXXXX67</text><text x="580" y="711" class="tablev">0.0</text><text x="670" y="711" class="tablev">34.500</text><text x="760" y="711" class="tablev">2026-03-06T20:47:46Z</text>
+  <text x="60" y="734" class="tablev">exec_e2c9a5b8</text><text x="370" y="734" class="tablev">completed</text><text x="450" y="734" class="tablev">+1XXXXXXXX67</text><text x="580" y="734" class="tablev">0.0</text><text x="670" y="734" class="tablev">37.330</text><text x="760" y="734" class="tablev">2026-03-06T20:02:44Z</text>
+  <text x="60" y="757" class="tablev">exec_f1b8d3e4</text><text x="370" y="757" class="tablev">completed</text><text x="450" y="757" class="tablev">+1XXXXXXXX67</text><text x="580" y="757" class="tablev">0.0</text><text x="670" y="757" class="tablev">38.550</text><text x="760" y="757" class="tablev">2026-03-06T19:38:18Z</text>
+  <text x="60" y="780" class="tablev">exec_g6e1c7a9</text><text x="370" y="780" class="tablev">completed</text><text x="450" y="780" class="tablev">+1XXXXXXXX67</text><text x="580" y="780" class="tablev">0.0</text><text x="670" y="780" class="tablev">26.340</text><text x="760" y="780" class="tablev">2026-03-06T19:16:24Z</text>
+  <text x="60" y="803" class="tablev">exec_h9a4b2d5</text><text x="370" y="803" class="tablev">completed</text><text x="450" y="803" class="tablev">+1XXXXXXXX67</text><text x="580" y="803" class="tablev">0.0</text><text x="670" y="803" class="tablev">4.520</text><text x="760" y="803" class="tablev">2026-03-06T19:15:04Z</text>
+
+  <!-- Right side: Call Detail and Appointments -->
+  <rect x="1024" y="532" width="550" height="176" class="card"/>
+  <text x="1046" y="564" class="h">Call Detail</text>
+  <text x="1046" y="586" class="muted">Click any row to inspect patient/internal summaries.</text>
+  <rect x="1046" y="596" width="242" height="84" class="in"/>
+  <text x="1058" y="615" class="tableh">Patient-Facing Summary</text>
+  <text x="1058" y="640" class="tablev">Not available</text>
+  <rect x="1306" y="596" width="246" height="84" class="in"/>
+  <text x="1318" y="615" class="tableh">Internal Ops Summary</text>
+  <text x="1318" y="640" class="tablev">Not available</text>
+  <text x="1046" y="696" class="txt">execution: exec_f1b8d3e4 | status: completed | appointment: appt_987654</text>
+
+  <rect x="1024" y="726" width="550" height="330" class="card"/>
+  <text x="1046" y="758" class="h">Appointments and Visit Details</text>
+  <text x="1046" y="780" class="muted">Booked and pending scheduling, with doctor fit + visit purpose.</text>
+  <rect x="1046" y="792" width="506" height="248" class="in"/>
+  <text x="1058" y="812" class="tableh">APPOINTMENT</text>
+  <text x="1145" y="812" class="tableh">STATUS</text>
+  <text x="1220" y="812" class="tableh">PATIENT</text>
+  <text x="1280" y="812" class="tableh">SEGMENT</text>
+  <text x="1360" y="812" class="tableh">SLOT</text>
+  <text x="1058" y="836" class="tablev">-</text><text x="1145" y="836" class="tablev">needs_scheduling</text><text x="1220" y="836" class="tablev">Sample Patient</text><text x="1280" y="836" class="tablev">repeat</text><text x="1360" y="836" class="tablev">Sun 3:00 pm IST</text>
+  <text x="1058" y="860" class="tablev">appt_987654</text><text x="1145" y="860" class="tablev">completed</text><text x="1220" y="860" class="tablev">Sample Patient</text><text x="1280" y="860" class="tablev">repeat</text><text x="1360" y="860" class="tablev">Sun 8:00 pm IST</text>
+  <text x="1058" y="893" class="tablev">Purpose: anxiety and sleep difficulties</text>
+  <text x="1058" y="916" class="tablev">Purpose: pain in my neck, not able to sleep properly</text>
+  <text x="1058" y="939" class="tablev">Doctor: Dr. Kavya Rao (Psychiatry)</text>
+</svg>
