@@ -27,6 +27,8 @@ AgentCare is a library-first Python framework for building voice AI workflows: c
 
 ## Product At A Glance
 
+![AgentCare Framework Overview](docs/assets/screenshots/agentcare-framework-overview.png)
+
 - Converts call events into structured business actions.
 - Uses memory search (RAG fallback) when customer data is missing.
 - Supports Cal booking plus local mock EHR service for demos.
