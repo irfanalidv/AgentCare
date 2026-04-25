@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.2.1] - 2026-04-26
+
+### Changed
+
+- Unified README screenshot assets under a single dark/teal visual system.
+- Pinned `mistralai` to `<2.0.0` so fresh installs use the SDK API currently
+  imported by the Mistral extractor.
+
 ## [0.2.0] - 2026-04-25
 
 ### Added

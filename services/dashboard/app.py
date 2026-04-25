@@ -33,7 +33,7 @@ from agentcare.usecases import process_agentcare_execution
 from services.dashboard.wellness_routes import router as wellness_router
 
 
-app = FastAPI(title="AgentCare Dashboard", version="0.2.0")
+app = FastAPI(title="AgentCare Dashboard", version="0.2.1")
 app.include_router(wellness_router)
 _processing_execution_ids: set[str] = set()
 _processing_lock = threading.Lock()
