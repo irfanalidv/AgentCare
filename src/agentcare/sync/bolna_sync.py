@@ -6,7 +6,7 @@ from typing import Any
 
 from agentcare.bolna import BolnaClient
 from agentcare.settings import settings
-from agentcare.usecases import process_frontdesk_execution
+from agentcare.usecases import process_agentcare_execution, resolve_execution_workflow
 
 
 def _execution_key(ex: dict[str, Any]) -> str | None:
@@ -45,13 +45,15 @@ def sync_bolna_executions(
         processed += 1
         ex_key = _execution_key(ex)
         should_automate = bool(ex_key and (force_automation or ex_key not in automation_processed))
-        res = process_frontdesk_execution(
+        workflow = resolve_execution_workflow(ex)
+        res = process_agentcare_execution(
             ex,
             source="sync_job",
+            workflow=workflow,
             automate_actions=should_automate,
             enforce_idempotency=False,
         )
-        if res.customer_id:
+        if getattr(res, "customer_id", None):
             upserted_customers += 1
         if should_automate and ex_key:
             automation_processed.add(ex_key)

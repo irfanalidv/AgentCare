@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     customer_store_backend: str = "auto"  # auto | json | postgres
     customer_store_path: str = "artifacts/customers.json"
     processed_executions_path: str = "artifacts/processed_executions.json"
+    wellness_history_store_path: str = "artifacts/wellness_history.json"
 
     # Supabase / Postgres
     database_url: str | None = Field(

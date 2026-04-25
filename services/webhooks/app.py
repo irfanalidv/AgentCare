@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 
-from agentcare.usecases import process_frontdesk_execution
+from agentcare.usecases import process_agentcare_execution, resolve_execution_workflow
 
 
 app = FastAPI(title="AgentCare Webhooks", version="0.1.0")
@@ -35,21 +35,33 @@ def on_bolna_execution(payload: BolnaExecutionPayload) -> dict[str, Any]:
     and sends confirmation email when customer email + appointment details exist.
     """
     event = payload.model_dump()
-    res = process_frontdesk_execution(
+    workflow = resolve_execution_workflow(event)
+    res = process_agentcare_execution(
         event,
         source="webhook",
+        workflow=workflow,
         automate_actions=True,
         enforce_idempotency=True,
     )
 
     return {
         "ok": res.ok,
-        "deduplicated": res.deduplicated,
+        "workflow": workflow,
+        "deduplicated": getattr(res, "deduplicated", False),
         "execution_id": res.execution_id,
-        "customer_id": res.customer_id,
-        "email_sent": bool(res.email_confirmation),
-        "email_result": res.email_confirmation,
-        "analytics_store": res.analytics_store,
-        "enriched_fields": res.extracted_data,
+        "customer_id": getattr(res, "customer_id", None),
+        "employee_id": getattr(res, "employee_id", None),
+        "email_sent": bool(getattr(res, "email_confirmation", None)),
+        "email_result": getattr(res, "email_confirmation", None),
+        "analytics_store": getattr(res, "analytics_store", None),
+        "enriched_fields": getattr(res, "extracted_data", getattr(res, "extraction", {})),
+        "wellness": {
+            "analysis": getattr(res, "analysis", None),
+            "trend": getattr(res, "trend", None),
+            "policy": getattr(res, "policy", None),
+            "persisted": getattr(res, "persisted", None),
+        }
+        if workflow == "wellness_checkin"
+        else None,
     }
 

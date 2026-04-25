@@ -56,6 +56,23 @@ def workflow_followup_outreach() -> dict[str, Any]:
     )
 
 
+def workflow_wellness_checkin() -> dict[str, Any]:
+    return build_frontdesk_agent_spec(
+        agent_name="AgentCare Wellness Check-In",
+        welcome_message=(
+            "Hi, this is your weekly wellness check-in from AgentCare. "
+            "This is a short, confidential conversation. How has your week been?"
+        ),
+        llm_base_url=settings.agentcare_llm_gateway_url,
+        llm_model=settings.mistral_model,
+        mock_ehr_base_url=settings.agentcare_mock_ehr_url,
+        cal_api_key=settings.cal_api_key,
+        cal_event_type_id=settings.cal_event_type_id,
+        cal_timezone=settings.cal_timezone,
+        calendar_tool_mode="custom",
+    )
+
+
 WORKFLOW_REGISTRY: dict[str, WorkflowDefinition] = {
     "frontdesk_booking": WorkflowDefinition(
         name="frontdesk_booking",
@@ -77,6 +94,13 @@ WORKFLOW_REGISTRY: dict[str, WorkflowDefinition] = {
         category="outreach",
         required_integrations=["bolna", "llm_gateway", "analytics", "customer_memory"],
         spec_builder=workflow_followup_outreach,
+    ),
+    "wellness_checkin": WorkflowDefinition(
+        name="wellness_checkin",
+        description="Weekly burnout check-in with MBI-aligned signals and longitudinal trend tracking.",
+        category="wellness",
+        required_integrations=["bolna", "llm_gateway", "wellness_history"],
+        spec_builder=workflow_wellness_checkin,
     ),
 }
 

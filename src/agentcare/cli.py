@@ -20,7 +20,7 @@ from agentcare.orchestrator import Orchestrator
 from agentcare.settings import settings
 from agentcare.sync import sync_bolna_executions
 from agentcare.templates import build_frontdesk_agent_spec
-from agentcare.usecases import process_frontdesk_execution
+from agentcare.usecases import process_agentcare_execution, resolve_execution_workflow
 from agentcare.workflows import WORKFLOW_REGISTRY, list_workflows_metadata
 
 app = typer.Typer(add_completion=False, help="AgentCare CLI (Bolna + Mistral + eval).")
@@ -450,6 +450,7 @@ def framework_create_agent(
 def framework_process_execution(
     execution_json: Path = typer.Option(..., "--execution-json", exists=True, dir_okay=False),
     source: str = typer.Option("manual", "--source"),
+    workflow: str | None = typer.Option(None, "--workflow", help="Workflow override, e.g. wellness_checkin"),
     automate_actions: bool = typer.Option(True, "--automate-actions/--no-automate-actions"),
     enforce_idempotency: bool = typer.Option(False, "--enforce-idempotency/--no-enforce-idempotency"),
 ) -> None:
@@ -460,13 +461,15 @@ def framework_process_execution(
     payload = json.loads(execution_json.read_text("utf-8"))
     if not isinstance(payload, dict):
         raise typer.BadParameter("--execution-json must contain a JSON object")
-    res = process_frontdesk_execution(
+    selected_workflow = workflow or resolve_execution_workflow(payload)
+    res = process_agentcare_execution(
         payload,
         source=source,
+        workflow=selected_workflow,
         automate_actions=automate_actions,
         enforce_idempotency=enforce_idempotency,
     )
-    _print_json(res.__dict__)
+    _print_json({"workflow": selected_workflow, **res.__dict__})
 
 
 @app.command("up")

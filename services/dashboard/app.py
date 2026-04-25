@@ -27,7 +27,7 @@ from agentcare.customer import get_customer_store
 from agentcare.doctor import DoctorProfile, load_doctor_schema
 from agentcare.extraction import extract_conversation_fields
 from agentcare.settings import settings
-from agentcare.usecases import process_frontdesk_execution
+from agentcare.usecases import process_agentcare_execution
 
 
 app = FastAPI(title="AgentCare Dashboard", version="0.1.0")
@@ -323,7 +323,7 @@ def _trigger_execution_processing_async(execution_payload: dict[str, Any]) -> bo
 
     def _runner() -> None:
         try:
-            process_frontdesk_execution(
+            process_agentcare_execution(
                 execution_payload,
                 source="dashboard_status_terminal",
                 automate_actions=True,
