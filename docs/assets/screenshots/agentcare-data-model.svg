@@ -1,69 +1,172 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="920" viewBox="0 0 1500 920">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820" font-family="-apple-system, 'Segoe UI', system-ui, Arial, sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a1427"/>
-      <stop offset="100%" stop-color="#101e37"/>
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
     </linearGradient>
     <style>
-      .title { font: 700 34px Arial, sans-serif; fill: #e9f2ff; }
-      .sub { font: 500 15px Arial, sans-serif; fill: #a4bbdf; }
-      .tbl { fill: #13233f; stroke: #345b96; stroke-width: 2; rx: 14; }
-      .th { font: 700 17px Arial, sans-serif; fill: #dbe9ff; }
-      .tx { font: 500 14px Arial, sans-serif; fill: #a9c5ee; }
-      .pk { fill: #7dd3fc; }
-      .fk { fill: #86efac; }
-      .arrow { stroke: #7db2ff; stroke-width: 2.5; fill: none; marker-end: url(#m); }
-      .tag { font: 700 12px Arial, sans-serif; fill: #0e1a2e; }
+      .h1 { font-size: 44px; font-weight: 800; fill: #ffffff; letter-spacing: -0.5px; }
+      .tag { font-size: 17px; fill: #6b7d99; font-weight: 400; }
+      .table { fill: #0f2233; stroke: #10b981; stroke-width: 2; rx: 14; }
+      .tableTitle { font-size: 18px; font-weight: 700; fill: #ffffff; }
+      .tableSub { font-size: 11px; fill: #6b7d99; font-weight: 500; letter-spacing: 0.5px; }
+      .col { font-size: 14px; fill: #b8d4f0; font-weight: 500; }
+      .colType { font-size: 12px; fill: #6b7d99; font-style: italic; }
+      .pk { fill: #10b981; rx: 9; }
+      .fk { fill: #1a3247; stroke: #10b981; stroke-width: 1; rx: 9; }
+      .pkText { font-size: 10px; font-weight: 800; fill: #ffffff; letter-spacing: 0.5px; }
+      .fkText { font-size: 10px; font-weight: 800; fill: #10b981; letter-spacing: 0.5px; }
+      .arrow { stroke: #10b981; stroke-width: 2.5; fill: none; }
+      .relText { font-size: 13px; fill: #b8d4f0; font-weight: 600; }
+      .relBg { fill: #0a1628; }
+      .new { fill: #10b981; rx: 6; }
+      .newText { font-size: 10px; font-weight: 800; fill: #ffffff; letter-spacing: 0.5px; }
+      .divider { stroke: #1f3850; stroke-width: 1; }
     </style>
-    <marker id="m" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#7db2ff"/>
-    </marker>
   </defs>
-  <rect width="1500" height="920" fill="url(#bg)"/>
-  <text x="50" y="70" class="title">AgentCare Data Model (Operational)</text>
-  <text x="50" y="96" class="sub">Primary entities for call memory, appointments, and lifecycle analytics</text>
 
-  <rect x="70" y="150" width="340" height="230" class="tbl"/>
-  <text x="92" y="186" class="th">customer_profiles</text>
-  <text x="92" y="218" class="tx">customer_id</text><rect x="250" y="205" width="30" height="16" rx="8" class="pk"/><text x="257" y="217" class="tag">PK</text>
-  <text x="92" y="245" class="tx">name</text>
-  <text x="92" y="272" class="tx">email</text>
-  <text x="92" y="299" class="tx">phone_e164</text>
-  <text x="92" y="326" class="tx">last_summary</text>
-  <text x="92" y="353" class="tx">interaction_count</text>
+  <rect width="1500" height="820" fill="url(#bg)"/>
 
-  <rect x="500" y="120" width="430" height="310" class="tbl"/>
-  <text x="522" y="156" class="th">call_executions</text>
-  <text x="522" y="188" class="tx">execution_id</text><rect x="700" y="175" width="30" height="16" rx="8" class="pk"/><text x="707" y="187" class="tag">PK</text>
-  <text x="522" y="215" class="tx">customer_id</text><rect x="700" y="202" width="30" height="16" rx="8" class="fk"/><text x="707" y="214" class="tag">FK</text>
-  <text x="522" y="242" class="tx">appointment_id</text>
-  <text x="522" y="269" class="tx">status</text>
-  <text x="522" y="296" class="tx">patient_facing_summary</text>
-  <text x="522" y="323" class="tx">internal_ops_summary</text>
-  <text x="522" y="350" class="tx">extracted_data (jsonb)</text>
-  <text x="522" y="377" class="tx">created_at / updated_at</text>
+  <text x="50" y="62" class="h1">Operational Data Model</text>
+  <text x="50" y="92" class="tag">Five entities cover call memory, appointments, lifecycle, and wellness history</text>
 
-  <rect x="1010" y="170" width="380" height="230" class="tbl"/>
-  <text x="1032" y="206" class="th">appointments</text>
-  <text x="1032" y="238" class="tx">appointment_id</text><rect x="1210" y="225" width="30" height="16" rx="8" class="pk"/><text x="1217" y="237" class="tag">PK</text>
-  <text x="1032" y="265" class="tx">customer_id</text><rect x="1210" y="252" width="30" height="16" rx="8" class="fk"/><text x="1217" y="264" class="tag">FK</text>
-  <text x="1032" y="292" class="tx">slot_start</text>
-  <text x="1032" y="319" class="tx">status</text>
-  <text x="1032" y="346" class="tx">source_execution_id</text>
+  <!-- ========== customer_profiles (top-left) ========== -->
+  <rect x="50" y="150" width="280" height="220" class="table"/>
+  <line x1="50" y1="190" x2="330" y2="190" class="divider"/>
+  <text x="70" y="178" class="tableTitle">customer_profiles</text>
+  <text x="70" y="210" class="col">customer_id</text>
+  <rect x="270" y="198" width="32" height="16" class="pk"/>
+  <text x="286" y="210" class="pkText" text-anchor="middle">PK</text>
+  <text x="70" y="234" class="col">name</text>
+  <text x="270" y="234" class="colType" text-anchor="end">text</text>
+  <text x="70" y="258" class="col">email</text>
+  <text x="270" y="258" class="colType" text-anchor="end">text</text>
+  <text x="70" y="282" class="col">phone_e164</text>
+  <text x="270" y="282" class="colType" text-anchor="end">text</text>
+  <text x="70" y="306" class="col">last_summary</text>
+  <text x="270" y="306" class="colType" text-anchor="end">text</text>
+  <text x="70" y="330" class="col">interaction_count</text>
+  <text x="270" y="330" class="colType" text-anchor="end">int</text>
+  <text x="70" y="354" class="col">notes</text>
+  <text x="270" y="354" class="colType" text-anchor="end">jsonb</text>
 
-  <rect x="500" y="500" width="430" height="260" class="tbl"/>
-  <text x="522" y="536" class="th">call_lifecycle_events</text>
-  <text x="522" y="568" class="tx">event_id</text><rect x="700" y="555" width="30" height="16" rx="8" class="pk"/><text x="707" y="567" class="tag">PK</text>
-  <text x="522" y="595" class="tx">execution_id</text><rect x="700" y="582" width="30" height="16" rx="8" class="fk"/><text x="707" y="594" class="tag">FK</text>
-  <text x="522" y="622" class="tx">state</text>
-  <text x="522" y="649" class="tx">status</text>
-  <text x="522" y="676" class="tx">details (jsonb)</text>
-  <text x="522" y="703" class="tx">ts</text>
+  <!-- ========== call_executions (top-center) ========== -->
+  <rect x="430" y="150" width="320" height="312" class="table"/>
+  <line x1="430" y1="190" x2="750" y2="190" class="divider"/>
+  <text x="450" y="178" class="tableTitle">call_executions</text>
+  <text x="450" y="210" class="col">execution_id</text>
+  <rect x="690" y="198" width="32" height="16" class="pk"/>
+  <text x="706" y="210" class="pkText" text-anchor="middle">PK</text>
+  <text x="450" y="234" class="col">customer_id</text>
+  <rect x="690" y="222" width="32" height="16" class="fk"/>
+  <text x="706" y="234" class="fkText" text-anchor="middle">FK</text>
+  <text x="450" y="258" class="col">workflow</text>
+  <text x="690" y="258" class="colType" text-anchor="end">text</text>
+  <text x="450" y="282" class="col">appointment_id</text>
+  <rect x="690" y="270" width="32" height="16" class="fk"/>
+  <text x="706" y="282" class="fkText" text-anchor="middle">FK</text>
+  <text x="450" y="306" class="col">status</text>
+  <text x="690" y="306" class="colType" text-anchor="end">text</text>
+  <text x="450" y="330" class="col">patient_facing_summary</text>
+  <text x="690" y="330" class="colType" text-anchor="end">text</text>
+  <text x="450" y="354" class="col">internal_ops_summary</text>
+  <text x="690" y="354" class="colType" text-anchor="end">text</text>
+  <text x="450" y="378" class="col">extracted_data</text>
+  <text x="690" y="378" class="colType" text-anchor="end">jsonb</text>
+  <text x="450" y="402" class="col">created_at</text>
+  <text x="690" y="402" class="colType" text-anchor="end">timestamp</text>
+  <text x="450" y="426" class="col">updated_at</text>
+  <text x="690" y="426" class="colType" text-anchor="end">timestamp</text>
 
-  <path d="M410,245 L500,245" class="arrow"/>
-  <path d="M930,260 L1010,260" class="arrow"/>
-  <path d="M715,430 L715,500" class="arrow"/>
-  <text x="432" y="232" class="sub">1-to-many</text>
-  <text x="940" y="247" class="sub">optional booking link</text>
-  <text x="734" y="474" class="sub">lifecycle timeline</text>
+  <!-- ========== appointments (top-right) ========== -->
+  <rect x="850" y="150" width="280" height="220" class="table"/>
+  <line x1="850" y1="190" x2="1130" y2="190" class="divider"/>
+  <text x="870" y="178" class="tableTitle">appointments</text>
+  <text x="870" y="210" class="col">appointment_id</text>
+  <rect x="1070" y="198" width="32" height="16" class="pk"/>
+  <text x="1086" y="210" class="pkText" text-anchor="middle">PK</text>
+  <text x="870" y="234" class="col">customer_id</text>
+  <rect x="1070" y="222" width="32" height="16" class="fk"/>
+  <text x="1086" y="234" class="fkText" text-anchor="middle">FK</text>
+  <text x="870" y="258" class="col">slot_start</text>
+  <text x="1070" y="258" class="colType" text-anchor="end">timestamp</text>
+  <text x="870" y="282" class="col">status</text>
+  <text x="1070" y="282" class="colType" text-anchor="end">text</text>
+  <text x="870" y="306" class="col">doctor</text>
+  <text x="1070" y="306" class="colType" text-anchor="end">text</text>
+  <text x="870" y="330" class="col">source_execution_id</text>
+  <rect x="1070" y="318" width="32" height="16" class="fk"/>
+  <text x="1086" y="330" class="fkText" text-anchor="middle">FK</text>
+  <text x="870" y="354" class="col">cal_booking_id</text>
+  <text x="1070" y="354" class="colType" text-anchor="end">text</text>
+
+  <!-- ========== call_lifecycle_events (bottom-center) ========== -->
+  <rect x="430" y="510" width="320" height="220" class="table"/>
+  <line x1="430" y1="550" x2="750" y2="550" class="divider"/>
+  <text x="450" y="538" class="tableTitle">call_lifecycle_events</text>
+  <text x="450" y="570" class="col">event_id</text>
+  <rect x="690" y="558" width="32" height="16" class="pk"/>
+  <text x="706" y="570" class="pkText" text-anchor="middle">PK</text>
+  <text x="450" y="594" class="col">execution_id</text>
+  <rect x="690" y="582" width="32" height="16" class="fk"/>
+  <text x="706" y="594" class="fkText" text-anchor="middle">FK</text>
+  <text x="450" y="618" class="col">state</text>
+  <text x="690" y="618" class="colType" text-anchor="end">text</text>
+  <text x="450" y="642" class="col">status</text>
+  <text x="690" y="642" class="colType" text-anchor="end">text</text>
+  <text x="450" y="666" class="col">details</text>
+  <text x="690" y="666" class="colType" text-anchor="end">jsonb</text>
+  <text x="450" y="690" class="col">ts</text>
+  <text x="690" y="690" class="colType" text-anchor="end">timestamp</text>
+
+  <!-- ========== wellness_history (bottom-right, NEW) ========== -->
+  <rect x="850" y="510" width="280" height="244" class="table"/>
+  <line x1="850" y1="550" x2="1130" y2="550" class="divider"/>
+  <text x="870" y="538" class="tableTitle">wellness_history</text>
+  <rect x="1090" y="524" width="32" height="16" class="new"/>
+  <text x="1106" y="536" class="newText" text-anchor="middle">NEW</text>
+  <text x="870" y="570" class="col">employee_id</text>
+  <rect x="1070" y="558" width="32" height="16" class="pk"/>
+  <text x="1086" y="570" class="pkText" text-anchor="middle">PK</text>
+  <text x="870" y="594" class="col">execution_id</text>
+  <rect x="1070" y="582" width="32" height="16" class="fk"/>
+  <text x="1086" y="594" class="fkText" text-anchor="middle">FK</text>
+  <text x="870" y="618" class="col">timestamp</text>
+  <text x="1070" y="618" class="colType" text-anchor="end">timestamp</text>
+  <text x="870" y="642" class="col">ee_score</text>
+  <text x="1070" y="642" class="colType" text-anchor="end">float</text>
+  <text x="870" y="666" class="col">dp_score · pa_score</text>
+  <text x="1070" y="666" class="colType" text-anchor="end">float</text>
+  <text x="870" y="690" class="col">composite_score · risk_band</text>
+  <text x="1120" y="690" class="colType" text-anchor="end">mixed</text>
+  <text x="870" y="714" class="col">primary_stressor</text>
+  <text x="1070" y="714" class="colType" text-anchor="end">text</text>
+
+  <!-- Relationships -->
+  <!-- customer_profiles → call_executions (1-many) -->
+  <line x1="330" y1="260" x2="430" y2="260" class="arrow"/>
+  <polygon points="430,260 422,256 422,264" fill="#10b981"/>
+  <rect x="345" y="246" width="68" height="20" class="relBg"/>
+  <text x="378" y="260" class="relText" text-anchor="middle">1 to many</text>
+
+  <!-- call_executions → appointments (optional 1-1) -->
+  <line x1="750" y1="290" x2="850" y2="260" class="arrow"/>
+  <polygon points="850,260 842,260 846,266" fill="#10b981"/>
+  <rect x="755" y="262" width="84" height="20" class="relBg"/>
+  <text x="797" y="277" class="relText" text-anchor="middle">optional 1-1</text>
+
+  <!-- call_executions → call_lifecycle_events (1-many) -->
+  <line x1="590" y1="462" x2="590" y2="510" class="arrow"/>
+  <polygon points="590,510 586,502 594,502" fill="#10b981"/>
+  <rect x="552" y="478" width="76" height="20" class="relBg"/>
+  <text x="590" y="493" class="relText" text-anchor="middle">timeline</text>
+
+  <!-- call_executions → wellness_history (wellness only) -->
+  <line x1="750" y1="430" x2="850" y2="600" class="arrow"/>
+  <polygon points="850,600 842,596 844,604" fill="#10b981"/>
+  <rect x="752" y="490" width="124" height="20" class="relBg"/>
+  <text x="814" y="505" class="relText" text-anchor="middle">wellness workflow</text>
+
+  <!-- Footer note -->
+  <text x="50" y="780" class="tag">Tables persist via JSON (default) or Postgres (optional). Wellness history is per-employee score series for trend detection.</text>
 </svg>

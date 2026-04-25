@@ -1,69 +1,140 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820" font-family="-apple-system, 'Segoe UI', system-ui, Arial, sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#111827"/>
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
     </linearGradient>
-    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1f2937"/>
-      <stop offset="100%" stop-color="#111827"/>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
     <style>
-      .title { font: 700 40px Arial, sans-serif; fill: #e5f0ff; }
-      .subtitle { font: 400 18px Arial, sans-serif; fill: #9fb3d9; }
-      .layer { fill: url(#card); stroke: #2d405f; stroke-width: 2; rx: 18; }
-      .label { font: 700 20px Arial, sans-serif; fill: #dce9ff; }
-      .node { font: 500 16px Arial, sans-serif; fill: #9ec5ff; }
-      .side { fill: #111f35; stroke: #2f4f7a; stroke-width: 2; rx: 14; }
-      .sideLabel { font: 700 17px Arial, sans-serif; fill: #d4e8ff; }
-      .arrow { stroke: #6ea7ff; stroke-width: 3; fill: none; marker-end: url(#m); }
+      .h1 { font-size: 44px; font-weight: 800; fill: #ffffff; letter-spacing: -0.5px; }
+      .tag { font-size: 17px; fill: #6b7d99; font-weight: 400; }
+      .layer { fill: #0f2233; stroke: #10b981; stroke-width: 2; rx: 14; }
+      .layerNum { font-size: 14px; font-weight: 700; fill: #10b981; }
+      .layerTitle { font-size: 22px; font-weight: 700; fill: #ffffff; }
+      .layerDesc { font-size: 14px; fill: #b8d4f0; }
+      .pill { fill: #1a3247; stroke: #2a4660; stroke-width: 1; rx: 14; }
+      .pillText { font-size: 13px; fill: #b8d4f0; font-weight: 500; }
+      .arrow { stroke: #10b981; stroke-width: 2.5; fill: none; }
+      .accent { fill: url(#accentGrad); rx: 14; }
+      .accentText { font-size: 18px; fill: #ffffff; font-weight: 700; }
+      .side { fill: #0f2233; stroke: #1f3850; stroke-width: 1.5; rx: 12; }
+      .sideTitle { font-size: 15px; font-weight: 700; fill: #ffffff; }
+      .sideText { font-size: 13px; fill: #b8d4f0; }
     </style>
-    <marker id="m" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#6ea7ff"/>
-    </marker>
   </defs>
 
-  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1500" height="820" fill="url(#bg)"/>
 
-  <text x="70" y="85" class="title">AgentCare Architecture</text>
-  <text x="70" y="120" class="subtitle">Library-first design with clean ports/adapters boundaries</text>
+  <text x="50" y="62" class="h1">AgentCare Architecture</text>
+  <text x="50" y="92" class="tag">Hexagonal layout: use-cases in the middle, transport at the edges, ports as contracts</text>
 
-  <rect x="120" y="180" width="1180" height="90" class="layer"/>
-  <text x="150" y="235" class="label">1) Framework Consumer + CLI</text>
-  <text x="620" y="235" class="node">`agentcare` commands</text>
+  <rect x="50" y="140" width="1100" height="78" class="layer"/>
+  <text x="74" y="172" class="layerNum">LAYER 1</text>
+  <text x="74" y="198" class="layerTitle">CLI &amp; Services</text>
+  <text x="320" y="180" class="layerDesc">Entry points: webhook ingestion, dashboard, analytics, sync</text>
+  <rect x="320" y="190" width="98" height="26" class="pill"/>
+  <text x="369" y="208" class="pillText" text-anchor="middle">webhooks</text>
+  <rect x="426" y="190" width="98" height="26" class="pill"/>
+  <text x="475" y="208" class="pillText" text-anchor="middle">dashboard</text>
+  <rect x="532" y="190" width="98" height="26" class="pill"/>
+  <text x="581" y="208" class="pillText" text-anchor="middle">analytics</text>
+  <rect x="638" y="190" width="84" height="26" class="pill"/>
+  <text x="680" y="208" class="pillText" text-anchor="middle">CLI</text>
 
-  <rect x="120" y="300" width="1180" height="90" class="layer"/>
-  <text x="150" y="355" class="label">2) Usecases and Orchestrators</text>
-  <text x="650" y="355" class="node">Frontdesk / Care Navigation / Follow-up</text>
+  <line x1="600" y1="218" x2="600" y2="248" class="arrow"/>
+  <polygon points="600,254 596,246 604,246" fill="#10b981"/>
 
-  <rect x="120" y="420" width="1180" height="90" class="layer"/>
-  <text x="150" y="475" class="label">3) Ports Interfaces</text>
-  <text x="610" y="475" class="node">CustomerStore • AppointmentConnector • Notifier • Extractor • Analytics</text>
+  <rect x="50" y="254" width="1100" height="78" class="accent"/>
+  <text x="600" y="290" class="accentText" text-anchor="middle">Execution Router</text>
+  <text x="600" y="316" font-size="14" fill="#dcfce7" text-anchor="middle">resolves workflow → frontdesk_booking · care_navigation · followup_outreach · wellness_checkin</text>
 
-  <rect x="120" y="540" width="1180" height="90" class="layer"/>
-  <text x="150" y="595" class="label">4) Adapters / Providers</text>
-  <text x="555" y="595" class="node">Concrete implementations in customer/connectors/email/analytics/extraction</text>
+  <line x1="600" y1="332" x2="600" y2="362" class="arrow"/>
+  <polygon points="600,368 596,360 604,360" fill="#10b981"/>
 
-  <rect x="120" y="660" width="1180" height="90" class="layer"/>
-  <text x="150" y="715" class="label">5) External APIs + Storage</text>
-  <text x="490" y="715" class="node">Bolna • Mistral • Cal • Resend • Postgres</text>
+  <rect x="50" y="368" width="1100" height="78" class="layer"/>
+  <text x="74" y="400" class="layerNum">LAYER 3</text>
+  <text x="74" y="426" class="layerTitle">Use-cases</text>
+  <text x="320" y="408" class="layerDesc">Workflow orchestrators (one module per registered workflow)</text>
+  <rect x="320" y="418" width="124" height="26" class="pill"/>
+  <text x="382" y="436" class="pillText" text-anchor="middle">usecases/frontdesk</text>
+  <rect x="452" y="418" width="120" height="26" class="pill"/>
+  <text x="512" y="436" class="pillText" text-anchor="middle">usecases/wellness</text>
+  <rect x="580" y="418" width="84" height="26" class="pill"/>
+  <text x="622" y="436" class="pillText" text-anchor="middle">policies</text>
+  <rect x="672" y="418" width="84" height="26" class="pill"/>
+  <text x="714" y="436" class="pillText" text-anchor="middle">analysis</text>
 
-  <rect x="1335" y="290" width="220" height="130" class="side"/>
-  <text x="1360" y="335" class="sideLabel">FastAPI Services</text>
-  <text x="1360" y="365" class="node">webhooks</text>
-  <text x="1360" y="390" class="node">analytics</text>
-  <text x="1360" y="415" class="node">dashboard</text>
+  <line x1="600" y1="446" x2="600" y2="476" class="arrow"/>
+  <polygon points="600,482 596,474 604,474" fill="#10b981"/>
 
-  <rect x="1335" y="500" width="220" height="100" class="side"/>
-  <text x="1360" y="545" class="sideLabel">Dashboard UI</text>
-  <text x="1360" y="575" class="node">Operator Console</text>
+  <rect x="50" y="482" width="1100" height="78" class="layer"/>
+  <text x="74" y="514" class="layerNum">LAYER 4</text>
+  <text x="74" y="540" class="layerTitle">Ports</text>
+  <text x="320" y="522" class="layerDesc">Interface contracts; implementations are interchangeable</text>
+  <rect x="320" y="532" width="120" height="26" class="pill"/>
+  <text x="380" y="550" class="pillText" text-anchor="middle">CustomerStore</text>
+  <rect x="448" y="532" width="156" height="26" class="pill"/>
+  <text x="526" y="550" class="pillText" text-anchor="middle">AppointmentConnector</text>
+  <rect x="612" y="532" width="80" height="26" class="pill"/>
+  <text x="652" y="550" class="pillText" text-anchor="middle">Notifier</text>
+  <rect x="700" y="532" width="80" height="26" class="pill"/>
+  <text x="740" y="550" class="pillText" text-anchor="middle">Extractor</text>
+  <rect x="788" y="532" width="148" height="26" class="pill"/>
+  <text x="862" y="550" class="pillText" text-anchor="middle">WellnessHistoryStore</text>
 
-  <path d="M710,270 L710,300" class="arrow"/>
-  <path d="M710,390 L710,420" class="arrow"/>
-  <path d="M710,510 L710,540" class="arrow"/>
-  <path d="M710,630 L710,660" class="arrow"/>
+  <line x1="600" y1="560" x2="600" y2="590" class="arrow"/>
+  <polygon points="600,596 596,588 604,588" fill="#10b981"/>
 
-  <path d="M1300,345 L1335,345" class="arrow"/>
-  <path d="M1300,570 L1335,550" class="arrow"/>
-  <path d="M1445,420 L1445,500" class="arrow"/>
+  <rect x="50" y="596" width="1100" height="78" class="layer"/>
+  <text x="74" y="628" class="layerNum">LAYER 5</text>
+  <text x="74" y="654" class="layerTitle">Adapters</text>
+  <text x="320" y="636" class="layerDesc">Concrete implementations: storage, providers, integrations</text>
+  <rect x="320" y="646" width="86" height="26" class="pill"/>
+  <text x="363" y="664" class="pillText" text-anchor="middle">JSON store</text>
+  <rect x="414" y="646" width="86" height="26" class="pill"/>
+  <text x="457" y="664" class="pillText" text-anchor="middle">Postgres</text>
+  <rect x="508" y="646" width="80" height="26" class="pill"/>
+  <text x="548" y="664" class="pillText" text-anchor="middle">Cal.com</text>
+  <rect x="596" y="646" width="80" height="26" class="pill"/>
+  <text x="636" y="664" class="pillText" text-anchor="middle">Resend</text>
+  <rect x="684" y="646" width="80" height="26" class="pill"/>
+  <text x="724" y="664" class="pillText" text-anchor="middle">Bolna</text>
+  <rect x="772" y="646" width="80" height="26" class="pill"/>
+  <text x="812" y="664" class="pillText" text-anchor="middle">Mistral</text>
+
+  <line x1="600" y1="674" x2="600" y2="704" class="arrow"/>
+  <polygon points="600,710 596,702 604,702" fill="#10b981"/>
+
+  <rect x="50" y="710" width="1100" height="58" class="layer"/>
+  <text x="74" y="734" class="layerNum">LAYER 6</text>
+  <text x="74" y="755" class="layerTitle">External APIs &amp; Storage</text>
+  <text x="380" y="747" class="layerDesc">Telephony · LLMs · Calendaring · Email · Database</text>
+
+  <rect x="1180" y="140" width="280" height="180" class="side"/>
+  <text x="1200" y="172" class="sideTitle">Design principles</text>
+  <text x="1200" y="200" class="sideText">• Provider-agnostic via ports</text>
+  <text x="1200" y="222" class="sideText">• One use-case per workflow</text>
+  <text x="1200" y="244" class="sideText">• JSON-first persistence,</text>
+  <text x="1200" y="262" class="sideText">  Postgres optional</text>
+  <text x="1200" y="284" class="sideText">• Pure analysis modules</text>
+  <text x="1200" y="306" class="sideText">  (no I/O, fully testable)</text>
+
+  <rect x="1180" y="340" width="280" height="148" class="side"/>
+  <text x="1200" y="372" class="sideTitle">Why hexagonal</text>
+  <text x="1200" y="400" class="sideText">Business logic does not</text>
+  <text x="1200" y="418" class="sideText">depend on Bolna, Mistral,</text>
+  <text x="1200" y="436" class="sideText">Cal, or Resend specifically.</text>
+  <text x="1200" y="458" class="sideText">Each can be swapped by</text>
+  <text x="1200" y="476" class="sideText">writing a new adapter.</text>
+
+  <rect x="1180" y="508" width="280" height="166" class="side"/>
+  <text x="1200" y="540" class="sideTitle">Tested boundaries</text>
+  <text x="1200" y="568" class="sideText">• 24 unit tests</text>
+  <text x="1200" y="590" class="sideText">• Frontdesk regression suite</text>
+  <text x="1200" y="612" class="sideText">• Burnout / trend analysis</text>
+  <text x="1200" y="634" class="sideText">• Wellness use-case</text>
+  <text x="1200" y="656" class="sideText">• Execution router</text>
 </svg>

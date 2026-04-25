@@ -1,167 +1,174 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820" font-family="-apple-system, 'Segoe UI', system-ui, Arial, sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#111827"/>
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
     </linearGradient>
-    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1f2937"/>
-      <stop offset="100%" stop-color="#111827"/>
-    </linearGradient>
-    <linearGradient id="cardWellness" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1f2a3a"/>
-      <stop offset="100%" stop-color="#15243a"/>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
     <style>
-      .title { font: 700 40px Arial, sans-serif; fill: #e5f0ff; }
-      .subtitle { font: 400 18px Arial, sans-serif; fill: #9fb3d9; }
-      .stage { fill: url(#card); stroke: #2d405f; stroke-width: 2; rx: 14; }
-      .stageLabel { font: 700 20px Arial, sans-serif; fill: #dce9ff; }
-      .stageNode { font: 500 15px Arial, sans-serif; fill: #9ec5ff; }
-      .wfHealth { fill: url(#card); stroke: #2d405f; stroke-width: 2; rx: 14; }
-      .wfWell { fill: url(#cardWellness); stroke: #3a6cb0; stroke-width: 2; rx: 14; }
-      .wfTitle { font: 700 18px Arial, sans-serif; fill: #dce9ff; }
-      .wfMeta { font: 400 13px Arial, sans-serif; fill: #9fb3d9; }
-      .wfBadge { font: 600 11px Arial, sans-serif; fill: #6ea7ff; }
-      .arrow { stroke: #6ea7ff; stroke-width: 2.5; fill: none; marker-end: url(#m); }
-      .arrowSoft { stroke: #4f6c95; stroke-width: 2; fill: none; stroke-dasharray: 5,4; }
-      .footer { font: 400 13px Arial, sans-serif; fill: #6e7d99; }
+      .h1 { font-size: 44px; font-weight: 800; fill: #ffffff; letter-spacing: -0.5px; }
+      .tag { font-size: 17px; fill: #6b7d99; font-weight: 400; }
+      .stage { fill: #0f2233; stroke: #10b981; stroke-width: 2; rx: 14; }
+      .stageNum { font-size: 13px; font-weight: 700; fill: #10b981; }
+      .stageTitle { font-size: 17px; font-weight: 700; fill: #ffffff; }
+      .stageDesc { font-size: 12px; fill: #b8d4f0; }
+      .arrow { stroke: #10b981; stroke-width: 2.5; fill: none; }
+      .arrowSoft { stroke: #2a4660; stroke-width: 1.5; fill: none; stroke-dasharray: 4,4; }
+      .col { font-size: 22px; font-weight: 700; fill: #ffffff; }
+      .wf { fill: #0f2233; stroke: #1f3850; stroke-width: 1.5; rx: 14; }
+      .wfHi { fill: #0f2233; stroke: #10b981; stroke-width: 2; rx: 14; }
+      .wfTitle { font-size: 18px; font-weight: 700; fill: #ffffff; }
+      .wfBadge { font-size: 11px; font-weight: 700; fill: #6b7d99; letter-spacing: 1px; }
+      .wfBadgeNew { font-size: 11px; font-weight: 700; fill: #10b981; letter-spacing: 1px; }
+      .wfDesc { font-size: 13px; fill: #b8d4f0; }
+      .wfPath { font-size: 11px; fill: #6b7d99; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+      .accent { fill: url(#accentGrad); rx: 14; }
+      .accentText { font-size: 17px; fill: #ffffff; font-weight: 700; }
     </style>
-    <marker id="m" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <polygon points="0,0 10,4 0,8" fill="#6ea7ff"/>
-    </marker>
   </defs>
 
-  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1500" height="820" fill="url(#bg)"/>
 
-  <text x="70" y="80" class="title">AgentCare Workflows</text>
-  <text x="70" y="112" class="subtitle">Four registered workflows share one voice-AI pipeline; each adds its own analysis, policy, and action layer</text>
+  <text x="50" y="62" class="h1">AgentCare Workflows</text>
+  <text x="50" y="92" class="tag">Four registered workflows share one voice-AI pipeline; each plugs in its own analysis, policy, and action</text>
 
-  <!-- Pipeline strip across the top half -->
-  <rect x="70" y="170" width="280" height="110" class="stage"/>
-  <text x="90" y="205" class="stageLabel">1. Call Ingestion</text>
-  <text x="90" y="232" class="stageNode">Bolna · Deepgram · Mistral · Polly</text>
-  <text x="90" y="252" class="stageNode">FastAPI webhook</text>
+  <!-- ====== Pipeline strip across the top ====== -->
+  <text x="50" y="148" class="col">Shared Pipeline</text>
 
-  <rect x="380" y="170" width="280" height="110" class="stage"/>
-  <text x="400" y="205" class="stageLabel">2. Extraction</text>
-  <text x="400" y="232" class="stageNode">Regex layer</text>
-  <text x="400" y="252" class="stageNode">LLM extractor (Pydantic JSON)</text>
+  <!-- Stage 1: Ingestion -->
+  <rect x="50" y="168" width="270" height="100" class="stage"/>
+  <text x="70" y="195" class="stageNum">STAGE 1</text>
+  <text x="70" y="220" class="stageTitle">Call Ingestion</text>
+  <text x="70" y="240" class="stageDesc">Bolna · Deepgram · Mistral</text>
+  <text x="70" y="258" class="stageDesc">FastAPI webhook</text>
 
-  <rect x="690" y="170" width="280" height="110" class="stage"/>
-  <text x="710" y="205" class="stageLabel">3. Analysis</text>
-  <text x="710" y="232" class="stageNode">Healthcare risk · Burnout MBI</text>
-  <text x="710" y="252" class="stageNode">Trend detection</text>
+  <line x1="320" y1="218" x2="358" y2="218" class="arrow"/>
+  <polygon points="358,218 350,214 350,222" fill="#10b981"/>
 
-  <rect x="1000" y="170" width="280" height="110" class="stage"/>
-  <text x="1020" y="205" class="stageLabel">4. Policy</text>
-  <text x="1020" y="232" class="stageNode">Frontdesk · Wellness</text>
-  <text x="1020" y="252" class="stageNode">Triage / auto-action / route</text>
+  <!-- Stage 2: Extraction -->
+  <rect x="358" y="168" width="260" height="100" class="stage"/>
+  <text x="378" y="195" class="stageNum">STAGE 2</text>
+  <text x="378" y="220" class="stageTitle">Extraction</text>
+  <text x="378" y="240" class="stageDesc">Regex layer (deterministic)</text>
+  <text x="378" y="258" class="stageDesc">LLM extractor (Pydantic JSON)</text>
 
-  <rect x="1310" y="170" width="220" height="110" class="stage"/>
-  <text x="1330" y="205" class="stageLabel">5. Action</text>
-  <text x="1330" y="232" class="stageNode">Cal booking</text>
-  <text x="1330" y="252" class="stageNode">Email · Memory · Triage</text>
+  <line x1="618" y1="218" x2="656" y2="218" class="arrow"/>
+  <polygon points="656,218 648,214 648,222" fill="#10b981"/>
 
-  <line x1="350" y1="225" x2="378" y2="225" class="arrow"/>
-  <line x1="660" y1="225" x2="688" y2="225" class="arrow"/>
-  <line x1="970" y1="225" x2="998" y2="225" class="arrow"/>
-  <line x1="1280" y1="225" x2="1308" y2="225" class="arrow"/>
+  <!-- Stage 3: Analysis -->
+  <rect x="656" y="168" width="260" height="100" class="stage"/>
+  <text x="676" y="195" class="stageNum">STAGE 3</text>
+  <text x="676" y="220" class="stageTitle">Analysis</text>
+  <text x="676" y="240" class="stageDesc">Healthcare risk · Burnout MBI</text>
+  <text x="676" y="258" class="stageDesc">Trend detection (Mann–Kendall)</text>
 
-  <!-- Workflows row -->
-  <text x="70" y="350" class="title" style="font-size:26px;">Registered Workflows</text>
+  <line x1="916" y1="218" x2="954" y2="218" class="arrow"/>
+  <polygon points="954,218 946,214 946,222" fill="#10b981"/>
+
+  <!-- Stage 4: Policy -->
+  <rect x="954" y="168" width="260" height="100" class="accent"/>
+  <text x="974" y="220" font-size="17" font-weight="700" fill="#ffffff">Policy &amp; Routing</text>
+  <text x="974" y="240" font-size="13" fill="#dcfce7">Frontdesk · Wellness</text>
+  <text x="974" y="258" font-size="13" fill="#dcfce7">Triage / auto-action / escalate</text>
+
+  <line x1="1214" y1="218" x2="1252" y2="218" class="arrow"/>
+  <polygon points="1252,218 1244,214 1244,222" fill="#10b981"/>
+
+  <!-- Stage 5: Action -->
+  <rect x="1252" y="168" width="200" height="100" class="stage"/>
+  <text x="1272" y="195" class="stageNum">STAGE 5</text>
+  <text x="1272" y="220" class="stageTitle">Action</text>
+  <text x="1272" y="240" class="stageDesc">Cal · Email · Memory</text>
+  <text x="1272" y="258" class="stageDesc">Triage queue</text>
+
+  <!-- ====== Registered Workflows ====== -->
+  <text x="50" y="340" class="col">Registered Workflows</text>
+
+  <!-- Connector lines from policy to workflows -->
+  <path d="M 1084 270 C 1084 295, 200 295, 200 380" class="arrowSoft"/>
+  <path d="M 1084 270 C 1084 295, 510 295, 510 380" class="arrowSoft"/>
+  <path d="M 1084 270 C 1084 295, 820 295, 820 380" class="arrowSoft"/>
+  <path d="M 1084 270 L 1130 380" class="arrowSoft"/>
 
   <!-- frontdesk_booking -->
-  <rect x="70" y="380" width="350" height="180" class="wfHealth"/>
-  <text x="90" y="412" class="wfTitle">frontdesk_booking</text>
-  <text x="90" y="432" class="wfBadge">HEALTHCARE</text>
-  <text x="90" y="460" class="wfMeta">Inbound call → extract intent →</text>
-  <text x="90" y="478" class="wfMeta">assign doctor → check Cal slot →</text>
-  <text x="90" y="496" class="wfMeta">book appointment → confirm by</text>
-  <text x="90" y="514" class="wfMeta">email → persist lifecycle.</text>
-  <text x="90" y="540" class="wfMeta" style="fill:#7d96b8;">usecases/frontdesk.py</text>
+  <rect x="50" y="380" width="340" height="200" class="wf"/>
+  <text x="70" y="412" class="wfTitle">frontdesk_booking</text>
+  <text x="70" y="432" class="wfBadge">HEALTHCARE · SCHEDULING</text>
+  <text x="70" y="462" class="wfDesc">Inbound call → extract intent →</text>
+  <text x="70" y="480" class="wfDesc">assign doctor → check Cal slot →</text>
+  <text x="70" y="498" class="wfDesc">book appointment → confirm by</text>
+  <text x="70" y="516" class="wfDesc">email → persist lifecycle.</text>
+  <text x="70" y="556" class="wfPath">usecases/frontdesk.py</text>
 
   <!-- care_navigation -->
-  <rect x="440" y="380" width="350" height="180" class="wfHealth"/>
-  <text x="460" y="412" class="wfTitle">care_navigation</text>
-  <text x="460" y="432" class="wfBadge">HEALTHCARE</text>
-  <text x="460" y="460" class="wfMeta">Long-form patient intake with</text>
-  <text x="460" y="478" class="wfMeta">specialty routing and care-team</text>
-  <text x="460" y="496" class="wfMeta">coordination handoff.</text>
-  <text x="460" y="540" class="wfMeta" style="fill:#7d96b8;">workflows/registry.py</text>
+  <rect x="410" y="380" width="340" height="200" class="wf"/>
+  <text x="430" y="412" class="wfTitle">care_navigation</text>
+  <text x="430" y="432" class="wfBadge">HEALTHCARE · COORDINATION</text>
+  <text x="430" y="462" class="wfDesc">Long-form patient intake with</text>
+  <text x="430" y="480" class="wfDesc">specialty routing and care-team</text>
+  <text x="430" y="498" class="wfDesc">coordination handoff. Tool-friendly,</text>
+  <text x="430" y="516" class="wfDesc">booking-light.</text>
+  <text x="430" y="556" class="wfPath">workflows/registry.py</text>
 
   <!-- followup_outreach -->
-  <rect x="810" y="380" width="350" height="180" class="wfHealth"/>
-  <text x="830" y="412" class="wfTitle">followup_outreach</text>
-  <text x="830" y="432" class="wfBadge">HEALTHCARE</text>
-  <text x="830" y="460" class="wfMeta">Outbound follow-up to confirm</text>
-  <text x="830" y="478" class="wfMeta">post-visit status and surface</text>
-  <text x="830" y="496" class="wfMeta">re-engagement signals.</text>
-  <text x="830" y="540" class="wfMeta" style="fill:#7d96b8;">workflows/registry.py</text>
+  <rect x="770" y="380" width="340" height="200" class="wf"/>
+  <text x="790" y="412" class="wfTitle">followup_outreach</text>
+  <text x="790" y="432" class="wfBadge">HEALTHCARE · OUTREACH</text>
+  <text x="790" y="462" class="wfDesc">Outbound follow-up to confirm</text>
+  <text x="790" y="480" class="wfDesc">post-visit status and surface</text>
+  <text x="790" y="498" class="wfDesc">re-engagement signals for</text>
+  <text x="790" y="516" class="wfDesc">unresolved cases.</text>
+  <text x="790" y="556" class="wfPath">workflows/registry.py</text>
 
-  <!-- wellness_checkin -->
-  <rect x="1180" y="380" width="350" height="180" class="wfWell"/>
-  <text x="1200" y="412" class="wfTitle">wellness_checkin</text>
-  <text x="1200" y="432" class="wfBadge" style="fill:#7fb4ff;">WORKPLACE WELLNESS</text>
-  <text x="1200" y="460" class="wfMeta">Weekly burnout check-in →</text>
-  <text x="1200" y="478" class="wfMeta">MBI dimension scoring →</text>
-  <text x="1200" y="496" class="wfMeta">trend detection → triage</text>
-  <text x="1200" y="514" class="wfMeta">routing or auto-close.</text>
-  <text x="1200" y="540" class="wfMeta" style="fill:#7d96b8;">usecases/wellness.py</text>
+  <!-- wellness_checkin (highlighted) -->
+  <rect x="1130" y="380" width="320" height="200" class="wfHi"/>
+  <text x="1150" y="412" class="wfTitle">wellness_checkin</text>
+  <text x="1150" y="432" class="wfBadgeNew">WORKPLACE WELLNESS · NEW</text>
+  <text x="1150" y="462" class="wfDesc">Weekly burnout check-in →</text>
+  <text x="1150" y="480" class="wfDesc">MBI dimension scoring →</text>
+  <text x="1150" y="498" class="wfDesc">trend detection → triage</text>
+  <text x="1150" y="516" class="wfDesc">routing or auto-close.</text>
+  <text x="1150" y="556" class="wfPath">usecases/wellness.py</text>
 
-  <!-- Connection arrows from policy stage to workflows -->
-  <path d="M 1140 280 C 1140 320, 245 320, 245 380" class="arrowSoft" fill="none"/>
-  <path d="M 1140 280 C 1140 320, 615 320, 615 380" class="arrowSoft" fill="none"/>
-  <path d="M 1140 280 C 1140 320, 985 320, 985 380" class="arrowSoft" fill="none"/>
-  <path d="M 1140 280 L 1355 380" class="arrowSoft" fill="none"/>
+  <!-- ====== Wellness Detail (5 module cards across bottom) ====== -->
+  <text x="50" y="640" class="col">Wellness Workflow Modules</text>
 
-  <!-- Wellness detail panel -->
-  <text x="70" y="640" class="title" style="font-size:24px;">Wellness Workflow — Detail</text>
+  <rect x="50" y="660" width="270" height="130" class="wf"/>
+  <text x="70" y="688" class="wfTitle" font-size="15">Burnout Analysis</text>
+  <text x="70" y="710" class="wfDesc" font-size="12">MBI regex taxonomy:</text>
+  <text x="70" y="726" class="wfDesc" font-size="12">EE · DP · rPA · crisis acuity</text>
+  <text x="70" y="742" class="wfDesc" font-size="12">Saturating composite scoring</text>
+  <text x="70" y="775" class="wfPath">analysis/burnout.py</text>
 
-  <rect x="70" y="670" width="280" height="160" class="wfWell"/>
-  <text x="90" y="700" class="wfTitle">Burnout Analysis</text>
-  <text x="90" y="725" class="wfMeta">MBI-aligned regex taxonomy:</text>
-  <text x="90" y="743" class="wfMeta">Emotional Exhaustion (EE)</text>
-  <text x="90" y="761" class="wfMeta">Depersonalisation (DP)</text>
-  <text x="90" y="779" class="wfMeta">Reduced Accomplishment (rPA)</text>
-  <text x="90" y="797" class="wfMeta">Crisis acuity flag</text>
-  <text x="90" y="817" class="wfMeta" style="fill:#7d96b8;">analysis/burnout.py</text>
+  <rect x="334" y="660" width="270" height="130" class="wf"/>
+  <text x="354" y="688" class="wfTitle" font-size="15">LLM Extraction</text>
+  <text x="354" y="710" class="wfDesc" font-size="12">Mistral, temperature 0.0</text>
+  <text x="354" y="726" class="wfDesc" font-size="12">Pydantic-validated JSON</text>
+  <text x="354" y="742" class="wfDesc" font-size="12">0–10 dimensions + evidence</text>
+  <text x="354" y="775" class="wfPath">extraction/burnout.py</text>
 
-  <rect x="380" y="670" width="280" height="160" class="wfWell"/>
-  <text x="400" y="700" class="wfTitle">LLM Extraction</text>
-  <text x="400" y="725" class="wfMeta">Mistral-Small, temp 0.0</text>
-  <text x="400" y="743" class="wfMeta">Pydantic-validated JSON</text>
-  <text x="400" y="761" class="wfMeta">0–10 dimension scores +</text>
-  <text x="400" y="779" class="wfMeta">primary stressor + crisis flag</text>
-  <text x="400" y="797" class="wfMeta">+ verbatim quote evidence</text>
-  <text x="400" y="817" class="wfMeta" style="fill:#7d96b8;">extraction/burnout.py</text>
+  <rect x="618" y="660" width="270" height="130" class="wf"/>
+  <text x="638" y="688" class="wfTitle" font-size="15">Trend Detection</text>
+  <text x="638" y="710" class="wfDesc" font-size="12">Mann–Kendall (tie-corrected)</text>
+  <text x="638" y="726" class="wfDesc" font-size="12">+ OLS slope + tail-run check</text>
+  <text x="638" y="742" class="wfDesc" font-size="12">Triage trigger logic</text>
+  <text x="638" y="775" class="wfPath">analysis/trend.py</text>
 
-  <rect x="690" y="670" width="280" height="160" class="wfWell"/>
-  <text x="710" y="700" class="wfTitle">Trend Detection</text>
-  <text x="710" y="725" class="wfMeta">Mann–Kendall test</text>
-  <text x="710" y="743" class="wfMeta">(with tie correction)</text>
-  <text x="710" y="761" class="wfMeta">+ OLS slope</text>
-  <text x="710" y="779" class="wfMeta">+ tail-run detector</text>
-  <text x="710" y="797" class="wfMeta">→ triage trigger</text>
-  <text x="710" y="817" class="wfMeta" style="fill:#7d96b8;">analysis/trend.py</text>
+  <rect x="902" y="660" width="270" height="130" class="wf"/>
+  <text x="922" y="688" class="wfTitle" font-size="15">Wellness Policy</text>
+  <text x="922" y="710" class="wfDesc" font-size="12">Crisis → human (immediate)</text>
+  <text x="922" y="726" class="wfDesc" font-size="12">High / triage → human</text>
+  <text x="922" y="742" class="wfDesc" font-size="12">Med / declining → manager</text>
+  <text x="922" y="775" class="wfPath">policies/wellness.py</text>
 
-  <rect x="1000" y="670" width="280" height="160" class="wfWell"/>
-  <text x="1020" y="700" class="wfTitle">Wellness Policy</text>
-  <text x="1020" y="725" class="wfMeta">High acuity → human</text>
-  <text x="1020" y="743" class="wfMeta">High band / triage → human</text>
-  <text x="1020" y="761" class="wfMeta">Medium / deteriorating →</text>
-  <text x="1020" y="779" class="wfMeta">manager check-in</text>
-  <text x="1020" y="797" class="wfMeta">Low / stable → auto-close</text>
-  <text x="1020" y="817" class="wfMeta" style="fill:#7d96b8;">policies/wellness.py</text>
+  <rect x="1186" y="660" width="264" height="130" class="wf"/>
+  <text x="1206" y="688" class="wfTitle" font-size="15">History Store</text>
+  <text x="1206" y="710" class="wfDesc" font-size="12">Per-employee score series</text>
+  <text x="1206" y="726" class="wfDesc" font-size="12">JSON / Postgres backends</text>
+  <text x="1206" y="742" class="wfDesc" font-size="12">Surfaces in /api/wellness/*</text>
+  <text x="1206" y="775" class="wfPath">wellness/store.py</text>
 
-  <rect x="1310" y="670" width="220" height="160" class="wfWell"/>
-  <text x="1330" y="700" class="wfTitle">History Store</text>
-  <text x="1330" y="725" class="wfMeta">Per-employee score</text>
-  <text x="1330" y="743" class="wfMeta">history (JSON / DB)</text>
-  <text x="1330" y="761" class="wfMeta">Surfaces in dashboard</text>
-  <text x="1330" y="779" class="wfMeta">/api/wellness/cohort</text>
-  <text x="1330" y="797" class="wfMeta">/api/wellness/flagged</text>
-  <text x="1330" y="817" class="wfMeta" style="fill:#7d96b8;">wellness/store.py</text>
-
-  <text x="70" y="875" class="footer">github.com/irfanalidv/AgentCare · pypi.org/project/agentcare · v0.2.0</text>
 </svg>

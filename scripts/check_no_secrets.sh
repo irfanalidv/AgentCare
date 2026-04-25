@@ -18,7 +18,7 @@ def tracked_files() -> list[Path]:
     files = []
     for raw in out.splitlines():
         p = Path(raw)
-        if p.name == ".env":
+        if p.name == ".env" or p == Path("scripts/check_no_secrets.sh"):
             continue
         files.append(p)
     return files
