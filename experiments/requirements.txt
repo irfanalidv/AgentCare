@@ -1,0 +1,10 @@
+# Optional dependencies for the experiments/ benchmark layer.
+# These are NOT required to run the AgentCare core framework or the wellness
+# workflow at runtime — only to reproduce the end-sem experimental results.
+#
+# Install with:
+#     pip install -r experiments/requirements.txt
+
+scikit-learn>=1.4
+numpy>=1.26
+matplotlib>=3.8

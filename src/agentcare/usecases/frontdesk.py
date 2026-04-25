@@ -330,7 +330,12 @@ def process_frontdesk_execution(
             "preferred_date_or_window": structured.get("preferred_date_or_window"),
             "follow_up_required": structured.get("follow_up_required"),
         }
-        extracted.update({k: v for k, v in mapped.items() if v not in (None, "", "null")})
+        for key, value in mapped.items():
+            if value in (None, "", "null"):
+                continue
+            if not _is_missing(extracted.get(key)):
+                continue
+            extracted[key] = value
     rag_backfill = _rag_backfill_fields(store=store, execution=execution, transcript=transcript, extracted=extracted)
     if rag_backfill.get("used"):
         extracted.update(rag_backfill.get("filled_values") or {})
@@ -436,33 +441,42 @@ def process_frontdesk_execution(
         and not appointment_id
         and extracted.get("intent") in {"new_appointment", "reschedule"}
     ):
-        cal_attempt = connector.book_slot(
-            patient_name=extracted.get("customer_name"),
-            patient_email=extracted.get("customer_email"),
-            patient_phone=phone,
-            reason=extracted.get("reason"),
-            doctor_name=extracted.get("assigned_doctor_name"),
-            doctor_specialty=extracted.get("assigned_doctor_specialty"),
-            visit_type=extracted.get("visit_type"),
-            summary=extracted.get("internal_ops_summary") or extracted.get("summary"),
-            preferred_date_or_window=str(extracted.get("preferred_date_or_window") or slot_start or ""),
-            slot_start_iso=slot_candidate or slot_start,
-            execution_id=ex_key,
-        )
-        cal_result = {
-            "ok": cal_attempt.ok,
-            "booking_id": cal_attempt.booking_id,
-            "start_iso": cal_attempt.start_iso,
-            "error": cal_attempt.error,
-            "skipped": cal_attempt.skipped,
-        }
-        booking_url = _extract_calendar_booking_url(getattr(cal_attempt, "details", None))
-        if booking_url:
-            cal_result["calendar_booking_url"] = booking_url
-        if cal_attempt.ok and cal_attempt.booking_id:
-            appointment_id = cal_attempt.booking_id
-        if cal_attempt.start_iso:
-            slot_start = cal_attempt.start_iso
+        if slot_check_result is not None and not slot_candidate:
+            cal_result = {
+                "ok": False,
+                "booking_id": None,
+                "start_iso": slot_start,
+                "error": slot_check_result.get("error") or "no_available_slots",
+                "skipped": True,
+            }
+        else:
+            cal_attempt = connector.book_slot(
+                patient_name=extracted.get("customer_name"),
+                patient_email=extracted.get("customer_email"),
+                patient_phone=phone,
+                reason=extracted.get("reason"),
+                doctor_name=extracted.get("assigned_doctor_name"),
+                doctor_specialty=extracted.get("assigned_doctor_specialty"),
+                visit_type=extracted.get("visit_type"),
+                summary=extracted.get("internal_ops_summary") or extracted.get("summary"),
+                preferred_date_or_window=str(extracted.get("preferred_date_or_window") or slot_start or ""),
+                slot_start_iso=slot_candidate or slot_start,
+                execution_id=ex_key,
+            )
+            cal_result = {
+                "ok": cal_attempt.ok,
+                "booking_id": cal_attempt.booking_id,
+                "start_iso": cal_attempt.start_iso,
+                "error": cal_attempt.error,
+                "skipped": cal_attempt.skipped,
+            }
+            booking_url = _extract_calendar_booking_url(getattr(cal_attempt, "details", None))
+            if booking_url:
+                cal_result["calendar_booking_url"] = booking_url
+            if cal_attempt.ok and cal_attempt.booking_id:
+                appointment_id = cal_attempt.booking_id
+            if cal_attempt.start_iso:
+                slot_start = cal_attempt.start_iso
 
     if should_automate and extracted.get("customer_email") and appointment_id and slot_start:
         try:
@@ -480,6 +494,15 @@ def process_frontdesk_execution(
             )
         except Exception as e:
             email_result = {"ok": False, "error": str(e)}
+    elif should_automate and extracted.get("customer_email") and slot_start and cal_result is not None:
+        if cal_result.get("ok") is False:
+            email_result = {
+                "ok": False,
+                "skipped": True,
+                "reason": "booking_failed",
+                "error": cal_result.get("error") or "appointment booking did not complete",
+                "to_email": extracted.get("customer_email"),
+            }
 
     if appointment_id:
         extracted["appointment_id"] = appointment_id

@@ -18,6 +18,8 @@ from pydantic import BaseModel
 from agentcare.analytics import (
     build_appointment_summary,
     build_cases_queue,
+    get_call_detail,
+    get_call_detail_fallback,
     get_call_lifecycle,
     persist_call_lifecycle_event,
 )
@@ -28,9 +30,11 @@ from agentcare.doctor import DoctorProfile, load_doctor_schema
 from agentcare.extraction import extract_conversation_fields
 from agentcare.settings import settings
 from agentcare.usecases import process_agentcare_execution
+from services.dashboard.wellness_routes import router as wellness_router
 
 
-app = FastAPI(title="AgentCare Dashboard", version="0.1.0")
+app = FastAPI(title="AgentCare Dashboard", version="0.2.0")
+app.include_router(wellness_router)
 _processing_execution_ids: set[str] = set()
 _processing_lock = threading.Lock()
 _dashboard_boot_ts = datetime.now(timezone.utc).isoformat()
@@ -805,6 +809,16 @@ def call_detail(execution_id: str) -> dict[str, Any]:
     eid = str(execution_id or "").strip()
     if not eid:
         return {"ok": False, "error": "execution_id is required"}
+    try:
+        local = get_call_detail(eid)
+        if local.get("ok") and local.get("row"):
+            return {"ok": True, "row": local["row"], "source": "local_processed"}
+    except Exception:
+        # Keep detail usable when the configured DB is temporarily unavailable.
+        pass
+    fallback = get_call_detail_fallback(eid)
+    if fallback:
+        return {"ok": True, "row": fallback, "source": "local_fallback"}
     api_key, _agent_id = _require_bolna()
     try:
         with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0) as client:

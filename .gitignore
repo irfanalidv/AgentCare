@@ -17,3 +17,7 @@ data/
 artifacts/
 *.log
 dist/
+
+# Experiments - generated artifacts
+experiments/data/*.jsonl
+experiments/output/

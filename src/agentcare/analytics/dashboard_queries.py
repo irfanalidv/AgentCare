@@ -330,6 +330,45 @@ def _extract_email_delivery_status(email_confirmation: Any) -> str:
     return "unknown"
 
 
+def _calendar_booking_status(cal_booking: Any) -> str | None:
+    ok_flag = _extract_first_bool(cal_booking, ("ok",))
+    if ok_flag is True:
+        return "booked"
+    if ok_flag is False:
+        return "failed"
+    if cal_booking in (None, "", {}):
+        return None
+    return "unknown"
+
+
+def _trusted_appointment_id(ev: dict[str, Any], ex: dict[str, Any]) -> str | None:
+    cal_booking = ex.get("cal_booking")
+    calendar_ok = _extract_first_bool(cal_booking, ("ok",))
+    event_appointment_id = str(ev.get("appointment_id") or "").strip() or None
+    if calendar_ok is True:
+        return (
+            _extract_first_str(cal_booking, ("calendar_booking_id", "booking_id", "id", "appointment_id"))
+            or event_appointment_id
+            or _extract_first_str(ex, ("appointment_id",))
+        )
+    return event_appointment_id
+
+
+def _email_delivery_status(email_confirmation: Any, calendar_status: str | None) -> str:
+    if email_confirmation in (None, "", {}) and calendar_status == "failed":
+        return "not_sent"
+    return _extract_email_delivery_status(email_confirmation)
+
+
+def _email_delivery_error(email_confirmation: Any, calendar_status: str | None) -> str | None:
+    error = _extract_first_str(email_confirmation, ("error", "error_message", "message", "reason"))
+    if error:
+        return error
+    if email_confirmation in (None, "", {}) and calendar_status == "failed":
+        return "booking_failed"
+    return None
+
+
 def _is_voicemail_event(ev: dict[str, Any]) -> bool:
     transcript = str(ev.get("transcript") or "").lower()
     hangup_reason = str(((ev.get("telephony_data") or {}).get("hangup_reason")) or "").lower()
@@ -386,13 +425,14 @@ def build_appointment_summary(*, limit: int = 50) -> dict[str, Any]:
         ex = _enrich_from_transcript(ev, ev.get("extracted_data") or {})
         cal_booking = ex.get("cal_booking")
         email_confirmation = ex.get("email_confirmation")
-        calendar_ok = _extract_first_bool(cal_booking, ("ok",))
+        calendar_status = _calendar_booking_status(cal_booking)
         event_email_sent_at = str(ev.get("updated_at") or ev.get("created_at") or "") or None
         payload_email_sent_at = _extract_first_str(
             email_confirmation,
             ("sent_at", "sentAt", "created_at", "createdAt", "timestamp"),
         )
-        appt_id = ev.get("appointment_id") or ex.get("appointment_id")
+        appt_id = _trusted_appointment_id(ev, ex)
+        transcript_appt_id = _extract_first_str(ex, ("preexisting_appointment_id", "appointment_id"))
         cid = str(ev.get("customer_id") or "")
         phone = ev.get("target_phone") or (ev.get("telephony_data") or {}).get("to_number") or ex.get("customer_phone")
         cust = by_customer_id.get(cid) or by_phone.get(str(phone))
@@ -401,7 +441,10 @@ def build_appointment_summary(*, limit: int = 50) -> dict[str, Any]:
         purpose = _compact_purpose(reason, ev.get("intent") or ex.get("intent"))
         base_row = {
             "appointment_id": appt_id,
-            "status": (ev.get("status") or "booked") if appt_id else "needs_scheduling",
+            "transcript_appointment_id": transcript_appt_id if transcript_appt_id != appt_id else None,
+            "status": "booking_failed"
+            if calendar_status == "failed"
+            else ((ev.get("status") or "booked") if appt_id else "needs_scheduling"),
             "slot_start": ev.get("slot_start") or ex.get("slot_start") or ex.get("preferred_date_or_window"),
             "patient_name": _preferred_patient_name(ev, ex, cust),
             "patient_phone": phone,
@@ -412,12 +455,9 @@ def build_appointment_summary(*, limit: int = 50) -> dict[str, Any]:
                 or _extract_first_str(ex.get("details"), ("calendar_booking_id", "booking_id", "id", "appointment_id"))
                 or _extract_first_str(ex, ("calendar_booking_id", "booking_id"))
             ),
-            "calendar_booking_status": "booked" if calendar_ok is True else ("failed" if calendar_ok is False else None),
-            "email_delivery_status": _extract_email_delivery_status(email_confirmation),
-            "email_delivery_error": _extract_first_str(
-                email_confirmation,
-                ("error", "error_message", "message", "reason"),
-            ),
+            "calendar_booking_status": calendar_status,
+            "email_delivery_status": _email_delivery_status(email_confirmation, calendar_status),
+            "email_delivery_error": _email_delivery_error(email_confirmation, calendar_status),
             "email_delivery_id": _extract_first_str(
                 email_confirmation,
                 ("email_delivery_id", "delivery_id", "message_id", "id"),
@@ -487,7 +527,14 @@ def build_cases_queue(*, limit: int = 100) -> dict[str, Any]:
         cust = by_phone.get(phone)
         best_ex = best["ex"]
         latest_ev = latest["event"]
-        appointment_ids = sorted({str(x["ex"].get("appointment_id")) for x in items if x["ex"].get("appointment_id")})
+        appointment_ids = sorted(
+            {
+                appt_id
+                for x in items
+                if (appt_id := _trusted_appointment_id(x["event"], x["ex"]))
+            }
+        )
+        booking_failed = any(_calendar_booking_status(x["ex"].get("cal_booking")) == "failed" for x in items)
         slots = sorted(
             {
                 str(x["event"].get("slot_start") or x["ex"].get("slot_start") or x["ex"].get("preferred_date_or_window"))
@@ -504,7 +551,9 @@ def build_cases_queue(*, limit: int = 100) -> dict[str, Any]:
         purpose_conflict = len(purposes) > 1
         appt_conflict = len(appointment_ids) > 1
         has_conflict = slot_conflict or purpose_conflict or appt_conflict
-        if has_conflict:
+        if booking_failed:
+            action = "human_review_booking_failed"
+        elif has_conflict:
             action = "human_review_conflict"
         elif risk_level == "high":
             action = "urgent_clinical_triage"
@@ -541,6 +590,7 @@ def build_cases_queue(*, limit: int = 100) -> dict[str, Any]:
                     "slot_conflict": slot_conflict,
                     "purpose_conflict": purpose_conflict,
                     "appointment_conflict": appt_conflict,
+                    "booking_failed": booking_failed,
                 },
                 "recommended_action": action,
                 "last_execution_id": latest_ev.get("execution_id"),
@@ -552,7 +602,12 @@ def build_cases_queue(*, limit: int = 100) -> dict[str, Any]:
     rows = rows[: max(1, min(limit, 500))]
     summary = {
         "total_cases": len(rows),
-        "needs_human_review": sum(1 for r in rows if r["recommended_action"] == "human_review_conflict"),
+        "needs_human_review": sum(
+            1
+            for r in rows
+            if r["recommended_action"] in {"human_review_conflict", "human_review_booking_failed"}
+        ),
+        "booking_failed": sum(1 for r in rows if r["recommended_action"] == "human_review_booking_failed"),
         "urgent_triage": sum(1 for r in rows if r["recommended_action"] == "urgent_clinical_triage"),
         "needs_email": sum(1 for r in rows if r["recommended_action"] == "collect_email"),
         "ready_to_book": sum(1 for r in rows if r["recommended_action"] == "book_appointment"),

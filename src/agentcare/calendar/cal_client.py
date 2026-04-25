@@ -41,6 +41,8 @@ def parse_preferred_slot(preferred: str | None, *, timezone_name: str) -> str | 
     # ISO pass-through.
     try:
         dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo(timezone_name))
         return dt.isoformat()
     except Exception:
         pass
@@ -50,6 +52,9 @@ def parse_preferred_slot(preferred: str | None, *, timezone_name: str) -> str | 
     tz = ZoneInfo(timezone_name)
     now = datetime.now(tz=tz)
     day = now.date()
+    m_date = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", t)
+    if m_date:
+        day = datetime(int(m_date.group(1)), int(m_date.group(2)), int(m_date.group(3))).date()
     if "tomorrow" in t:
         day = day + timedelta(days=1)
 
@@ -81,14 +86,19 @@ def parse_preferred_slot(preferred: str | None, *, timezone_name: str) -> str | 
         if ampm == "am" and hour == 12:
             hour = 0
     else:
-        m_word = re.search(r"\b(" + "|".join(word_to_hour.keys()) + r")\s*(am|pm)\b", t)
-        if m_word:
-            hour = word_to_hour[m_word.group(1)]
-            ampm = m_word.group(2)
-            if ampm == "pm" and hour < 12:
-                hour += 12
-            if ampm == "am" and hour == 12:
-                hour = 0
+        m_24h = re.search(r"\b(?:at\s*)?([01]?\d|2[0-3]):([0-5]\d)\b", t)
+        if m_24h:
+            hour = int(m_24h.group(1))
+            minute = int(m_24h.group(2))
+        else:
+            m_word = re.search(r"\b(" + "|".join(word_to_hour.keys()) + r")\s*(am|pm)\b", t)
+            if m_word:
+                hour = word_to_hour[m_word.group(1)]
+                ampm = m_word.group(2)
+                if ampm == "pm" and hour < 12:
+                    hour += 12
+                if ampm == "am" and hour == 12:
+                    hour = 0
 
     if hour is None:
         return None
@@ -145,6 +155,12 @@ def _extract_slots(data: Any) -> list[str]:
             elif isinstance(s, str):
                 out.append(s.strip())
     return sorted(list(dict.fromkeys(out)))
+
+
+def _safe_error_text(value: str, *, limit: int = 300) -> str:
+    redacted = re.sub(r"cal_(live|test)_[A-Za-z0-9]+", "cal_***", value or "")
+    redacted = re.sub(r"(apiKey=)[^&\\s]+", r"\1***", redacted)
+    return redacted[:limit].replace("\n", " ")
 
 
 def _to_utc_z(dt: datetime) -> str:
@@ -298,12 +314,15 @@ def fetch_cal_slots(
             try:
                 res = client.request(method, url, params=params, headers=headers)
                 if res.status_code >= 400:
-                    snippet = (res.text or "")[:200].replace("\n", " ")
+                    snippet = _safe_error_text(res.text or "", limit=200)
                     errors.append(f"{url} => {res.status_code} {snippet}")
                     continue
                 payload = res.json()
                 slots = _extract_slots(payload)
                 chosen = _choose_slot(preferred_date_or_window, slots, timezone_name)
+                if not chosen:
+                    errors.append(f"{url} => no available slots")
+                    continue
                 return CalSlotCheckAttempt(
                     ok=True,
                     slots=slots,
@@ -435,7 +454,7 @@ def create_cal_booking(
             for url, payload, headers, params in candidate_requests:
                 res = client.post(url, params=params, json=payload, headers=headers)
                 if res.status_code >= 400:
-                    snippet = (res.text or "")[:300].replace("\n", " ")
+                    snippet = _safe_error_text(res.text or "", limit=300)
                     errors.append(f"{url} => {res.status_code} {snippet}")
                     continue
                 data = res.json()
