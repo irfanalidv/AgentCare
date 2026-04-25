@@ -7,341 +7,197 @@
 [![PyPI downloads](https://img.shields.io/pypi/dm/agentcare.svg)](https://pypi.org/project/agentcare/)
 [![Pepy downloads](https://static.pepy.tech/badge/agentcare)](https://pepy.tech/project/agentcare)
 
-AgentCare is a library-first Python framework for building voice AI workflows: call intake, extraction, missing-data recovery, appointment orchestration, confirmation messaging, and operations analytics.
+AgentCare is a Python framework for building voice-AI workflows that turn phone conversations into structured business actions. It handles the parts that are tedious to do well: ingesting call events, extracting structured data from messy transcripts, recovering missing fields from memory, applying domain policy, and dispatching the resulting action — booking, escalation, follow-up, or triage — through provider-agnostic adapters.
 
-## Table of Contents
+Four workflows ship registered out of the box: three for healthcare front-desk use cases (booking, navigation, follow-up) and one for workplace burnout detection. The same five-stage pipeline runs all four; what differs is the analysis and policy layer plugged in at each end.
 
-- [Product At A Glance](#product-at-a-glance)
-- [First Run: Setup and Launch](#first-run-setup-and-launch)
-- [URLs To Open](#urls-to-open)
-- [Dashboard: What You Will See](#dashboard-what-you-will-see)
-- [End-of-Flow Output Preview (Anonymized)](#end-of-flow-output-preview-anonymized)
-- [Workflow Catalog](#workflow-catalog)
-- [`.env` Reference (What To Fill)](#env-reference-what-to-fill)
-- [End-to-End Flow](#end-to-end-flow)
-- [Architecture + Codebase Layout](#architecture--codebase-layout)
-- [Useful Commands](#useful-commands)
-- [Architecture + Docs](#architecture--docs)
-- [Quality Checks](#quality-checks)
-- [Contributing](#contributing)
-
-## Product At A Glance
-
-![AgentCare Framework Overview](docs/assets/screenshots/agentcare-framework-overview.png)
-
-- Converts call events into structured business actions.
-- Uses memory search (RAG fallback) when customer data is missing.
-- Supports Cal booking plus local mock EHR service for demos.
-- Assigns doctor/specialty from reason + policy logic.
-- Sends professional confirmation emails.
-- Persists lifecycle + summary data for dashboard operations.
-
-![AgentCare Architecture](docs/assets/screenshots/agentcare-architecture-visual.svg)
-![Call to Booking Workflow](docs/assets/screenshots/agentcare-workflow-call-to-booking.svg)
-![AgentCare Use Cases](docs/assets/screenshots/agentcare-usecases-map.svg)
-
----
-
-## First Run: Setup and Launch
-
-This section is the fastest path to get a working local system (install -> configure -> run -> verify).
-
-### 1) Install
-
-```bash
+```
 pip install agentcare
 ```
 
-For contributors/local development:
+## Contents
+
+- [What it does](#what-it-does)
+- [Quick start](#quick-start)
+- [URLs after launch](#urls-after-launch)
+- [Workflows](#workflows)
+- [The wellness workflow](#the-wellness-workflow)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Reproducible experiments](#reproducible-experiments)
+- [Useful commands](#useful-commands)
+- [Quality and contribution](#quality-and-contribution)
+- [Academic provenance](#academic-provenance)
+
+## What it does
+
+![AgentCare framework overview](docs/assets/screenshots/agentcare-framework-overview.png)
+
+AgentCare converts call lifecycle events into the actions a real operations team would take. A call lands; the framework extracts intent and structured fields from the transcript using a combination of regex and an LLM under a strict JSON contract; if the customer record is incomplete it falls back to memory search; a domain-specific analysis layer scores risk, signals, or trends; a policy layer turns that into a routing decision; and an adapter executes the action — confirming a booking through Cal, sending an email through Resend, or pushing a case to a triage queue. Every step is persisted, so the dashboard shows you what happened and why.
+
+The library is provider-agnostic by design. Bolna handles real-time telephony today, but the call-ingestion port does not depend on it. Mistral is the default extractor, but the LLM port accepts any OpenAI-compatible endpoint. Cal and Resend are the bundled connectors, but adding a new one is a matter of writing an adapter against the existing port — the business logic does not change.
+
+![Architecture](docs/assets/screenshots/agentcare-architecture-visual.svg)
+
+## Quick start
 
 ```bash
+pip install agentcare
+cp .env.example .env       # then add BOLNA_API_KEY and MISTRAL_API_KEY
+python -m agentcare up
+```
+
+That brings up the full local stack — webhook adapter, analytics API, dashboard, mock EHR, and a local OpenAI-compatible LLM gateway — on five ports. For a dry run that validates configuration without starting any service, append `--dry-run`.
+
+For local development against a checkout:
+
+```bash
+git clone https://github.com/irfanalidv/AgentCare
+cd AgentCare
 pip install -e ".[web,postgres,email,semantic,dev]"
 ```
 
-Alternative `requirements.txt` flow:
+## URLs after launch
 
-```bash
-pip install -r requirements.txt
-pip install -r requirements-optional.txt   # if running local services/providers
-pip install -r requirements-dev.txt        # if developing/testing
+| Service           | URL                                       |
+| ----------------- | ----------------------------------------- |
+| Dashboard         | http://127.0.0.1:8050                     |
+| Analytics health  | http://127.0.0.1:8040/healthz             |
+| Webhooks health   | http://127.0.0.1:8030/healthz             |
+| Mock EHR health   | http://127.0.0.1:8020/healthz             |
+| LLM gateway       | http://127.0.0.1:8010/healthz             |
+
+The dashboard auto-refreshes its status, executions, appointments, and case-queue panels on a short polling interval — there should be no need to hard-refresh during normal use.
+
+![Dashboard overview](docs/assets/screenshots/dashboard-overview.svg)
+
+## Workflows
+
+![Workflows overview](docs/assets/screenshots/agentcare-workflows-overview.svg)
+
+```
+$ python -m agentcare framework list-workflows
+frontdesk_booking      Healthcare front-desk: extract → assign → book → confirm
+care_navigation        Healthcare intake: long-form, specialty routing, care-team handoff
+followup_outreach      Outbound post-visit follow-up and re-engagement signals
+wellness_checkin       Workplace burnout check-in with MBI scoring and trend triage
 ```
 
-### 2) Create `.env`
+To create an agent for a specific workflow:
 
 ```bash
-cp .env.example .env
+python -m agentcare framework create-agent --workflow frontdesk_booking
 ```
 
-Add minimum values:
-- `BOLNA_API_KEY`
-- `MISTRAL_API_KEY`
+All four workflows share the same call-ingestion, extraction, and persistence machinery. The differences live in the analysis module (`src/agentcare/analysis/`), the policy module (`src/agentcare/policies/`), and the use-case orchestrator (`src/agentcare/usecases/`). A new workflow is added by registering a `WorkflowDefinition` and writing a use-case that wires the dependencies it needs through the relevant ports.
 
-### 3) Start the stack
+## The wellness workflow
 
-```bash
-python3 -m agentcare up
+`wellness_checkin` was added in v0.2.0 as a first-class peer to the healthcare workflows. It runs a short weekly conversational check-in with an employee, extracts MBI-aligned burnout signals from the transcript, tracks the score history per employee, and routes the result to one of three actions: auto-close, manager check-in, or confidential human follow-up.
+
+The analysis layer scores the three Maslach Burnout Inventory dimensions — emotional exhaustion, depersonalisation, and reduced personal accomplishment — using a regex taxonomy fused with an LLM extractor under a Pydantic-validated JSON schema. The trend layer applies the Mann–Kendall test (with tie correction) and an OLS slope to the per-employee score history; a triage trigger fires on three consecutive worsening sessions, on a composite score crossing 7.0, or on a deteriorating trend with a latest score above 5.0. Crisis cues — explicit hopelessness, self-harm references, breakdown language — are scored on a separate acuity flag that overrides the policy regardless of dimension scores.
+
+Operations data is exposed through the dashboard:
+
+```
+GET /api/wellness/cohort                  cohort summary by latest band
+GET /api/wellness/flagged                 employees flagged for follow-up
+GET /api/wellness/employee/{employee_id}  full session history + recomputed trend
+GET /api/wellness/series?limit=50         per-employee composite trajectories
 ```
 
-Dry run (no start, only validation/plan):
+The store is a JSON file by default (`artifacts/wellness_history.json`), backed by the `WellnessHistoryStorePort` interface — swap in a Postgres adapter without touching use-case code.
 
-```bash
-python3 -m agentcare up --dry-run
-```
+## Configuration
 
-### 4) Open the product
+The runtime reads from environment variables, conventionally loaded from `.env`. Two keys are mandatory: `BOLNA_API_KEY` for call orchestration and `MISTRAL_API_KEY` for extraction. Everything else has a default.
 
-Open dashboard:
-- [http://127.0.0.1:8050](http://127.0.0.1:8050)
+For the full feature surface — booking through Cal, confirmation email through Resend, postgres-backed memory, and so on — add the following:
 
-### 5) Run a safety check before sharing code
-
-```bash
-./scripts/check_no_secrets.sh
-```
-
----
-
-## URLs To Open
-
-After `agentcare up`, open:
-
-- Dashboard UI: [http://127.0.0.1:8050](http://127.0.0.1:8050)
-- Analytics API health: [http://127.0.0.1:8040/healthz](http://127.0.0.1:8040/healthz)
-- Webhooks health: [http://127.0.0.1:8030/healthz](http://127.0.0.1:8030/healthz)
-- Mock EHR health: [http://127.0.0.1:8020/healthz](http://127.0.0.1:8020/healthz)
-- LLM gateway health: [http://127.0.0.1:8010/healthz](http://127.0.0.1:8010/healthz)
-
-Dashboard mock preview asset:
-- `docs/assets/screenshots/dashboard-overview.svg` (anonymized sample data)
-
----
-
-## Dashboard: What You Will See
-
-![Dashboard Overview](docs/assets/screenshots/dashboard-overview.svg)
-
-Main sections:
-- **Call Console**: place outbound calls and monitor lifecycle.
-- **Workflow Status**: health of `llm_gateway`, `mock_ehr`, `webhooks`, and `analytics`.
-- **Operational Case Queue**: triage/prioritization, conflict flags, recommended action.
-- **Recent Executions**: latest call outcomes and costs.
-- **Call Detail**: patient-facing and internal summaries per execution.
-- **Appointments and Visit Details**: scheduled + pending entries with doctor and purpose.
-- **Live behavior**: dashboard auto-refreshes status/executions/appointments/cases (no manual hard refresh needed during normal operation).
-
----
-
-## End-of-Flow Output Preview (Anonymized)
-
-Calendar booking output:
-
-<img src="docs/assets/screenshots/endflow-calendar-booking-anonymized.png" alt="Calendar Booking Anonymized" width="100%" />
-
-[Open calendar booking PNG](docs/assets/screenshots/endflow-calendar-booking-anonymized.png) · [Open calendar booking SVG](docs/assets/screenshots/endflow-calendar-booking-anonymized.svg)
-
-Patient confirmation email output:
-
-<img src="docs/assets/screenshots/endflow-email-confirmation-anonymized.png" alt="Email Confirmation Anonymized" width="100%" />
-
-[Open email confirmation PNG](docs/assets/screenshots/endflow-email-confirmation-anonymized.png) · [Open email confirmation SVG](docs/assets/screenshots/endflow-email-confirmation-anonymized.svg)
-
-Both assets are anonymized and safe to share in public docs.
-
----
-
-## Workflow Catalog
-
-List workflows:
-
-```bash
-python3 -m agentcare framework list-workflows
-```
-
-Built-in workflows:
-- `frontdesk_booking`
-- `care_navigation`
-- `followup_outreach`
-
-Create an agent from workflow:
-
-```bash
-python3 -m agentcare framework create-agent --workflow frontdesk_booking
-```
-
----
-
-## `.env` Configuration (Professional Setup)
-
-Use `.env.example` as the template.
-The easiest way to avoid confusion is to configure by profile:
-
-### Profile A — Minimum runnable (local testing)
-
-Set these first:
-
-| Variable | Why it is needed |
+| Variable | Purpose |
 |---|---|
-| `BOLNA_API_KEY` | Required for call orchestration APIs |
-| `MISTRAL_API_KEY` | Required for extraction/evaluation logic |
+| `BOLNA_BASE_URL`, `BOLNA_AGENT_ID`, `BOLNA_FROM_NUMBER` | Provider endpoint, default agent, outbound caller identity |
+| `MISTRAL_MODEL` | Extraction and evaluation model |
+| `AGENTCARE_LLM_GATEWAY_URL`, `AGENTCARE_MOCK_EHR_URL` | Local service endpoints |
+| `CAL_API_KEY`, `CAL_EVENT_TYPE_ID`, `CAL_TIMEZONE` | Booking integration |
+| `RESEND_API_KEY`, `AGENTCARE_EMAIL_FROM` | Email delivery |
+| `CUSTOMER_STORE_BACKEND`, `CUSTOMER_STORE_PATH` | Memory backend (`auto` / `json` / `postgres`) and JSON path |
+| `WELLNESS_HISTORY_STORE_PATH` | Wellness score history (default `artifacts/wellness_history.json`) |
+| `PROCESSED_EXECUTIONS_PATH` | Idempotency tracking |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_DB_URL` | Postgres-backed persistence |
 
-You can run with just these plus defaults.
+Two switches are useful for advanced setups: `APPOINTMENT_CONNECTOR_BACKEND` (`cal` or `mock`) and `FRONTDESK_POLICY_PATH` (load policy rules from JSON).
 
-### Profile B — Recommended for full product flow
+The `artifacts/` directory holds runtime state — call summaries, customer profiles, processed-execution records, wellness history. It is git-ignored. Do not commit raw artefacts from real calls; if you need a public demo, anonymise names, emails, phone numbers, and booking IDs first. Do not commit `.env`.
 
-Add these to enable complete call -> booking -> email -> dashboard operations:
+## Architecture
 
-| Variable | Why it is needed |
-|---|---|
-| `BOLNA_BASE_URL` | Explicit provider endpoint |
-| `BOLNA_AGENT_ID` | Default agent for CLI/service operations |
-| `BOLNA_FROM_NUMBER` | Outbound caller identity |
-| `MISTRAL_MODEL` | Controls extraction/eval model behavior |
-| `AGENTCARE_LLM_GATEWAY_URL` | Local LLM gateway routing |
-| `AGENTCARE_MOCK_EHR_URL` | Local scheduling service endpoint |
-| `CAL_API_KEY` | Real booking integration |
-| `CAL_EVENT_TYPE_ID` | Cal event type mapping |
-| `CAL_TIMEZONE` | Booking time normalization |
-| `RESEND_API_KEY` | Email delivery provider auth |
-| `AGENTCARE_EMAIL_FROM` | Sender identity for confirmations |
-| `CUSTOMER_STORE_BACKEND` | Storage mode (`auto`, `json`, `postgres`) |
-| `CUSTOMER_STORE_PATH` | JSON memory path for local mode |
-| `PROCESSED_EXECUTIONS_PATH` | Idempotency tracking path |
-| `SUPABASE_URL` | Supabase project reference |
-| `SUPABASE_PUBLISHABLE_KEY` | Supabase project key |
-| `SUPABASE_DB_URL` | Postgres connection for production-grade persistence |
+The codebase follows hexagonal-architecture conventions: business logic in use-cases, transport-specific code in services and adapters, stable contracts in ports.
 
-### Profile C — Advanced/optional
-
-Use only if you need custom behavior:
-
-| Variable | When to use it |
-|---|---|
-| `APPOINTMENT_CONNECTOR_BACKEND` | Switch connector mode explicitly (`cal` or `mock`) |
-| `FRONTDESK_POLICY_PATH` | Load external policy rules JSON |
-
-Note: `*_PATH` keys (for example `CUSTOMER_STORE_PATH`, `PROCESSED_EXECUTIONS_PATH`) are optional and can usually be left as defaults.
-
-### Practical rule
-
-- If you are onboarding quickly: start with **Profile A**, then add **Profile B**.
-- If your team needs custom routing/rules: add **Profile C**.
-
-### Artifacts and privacy
-
-- `artifacts/` is local runtime data and is git-ignored by default.
-- Do **not** commit raw artifacts from real calls.
-- If you need shareable demos, create an anonymized export (mask names, emails, phones, booking IDs).
-- Keep `.env` local only; never commit it.
-
-Custom artifact paths can be configured with:
-- `CUSTOMER_STORE_PATH`
-- `PROCESSED_EXECUTIONS_PATH`
-
----
-
-## End-to-End Flow
-
-1. Ingest call execution event (webhook/sync/manual).
-2. Extract structured data from transcript.
-3. Backfill missing fields from memory search.
-4. Evaluate policy/risk and assign doctor.
-5. Check slot + book appointment via connector.
-6. Send patient confirmation email.
-7. Persist call lifecycle, summaries, and analytics.
-8. Display operations state in dashboard.
-
-Reliability notes:
-- Dashboard status polling reconciles live provider status to avoid stale "in-progress" UI states.
-- Completed call status can trigger backend processing as a safety net when webhook delivery is delayed.
-
----
-
-## Architecture + Codebase Layout
-
-### Layered architecture (quick view)
-
-![Architecture Layers](docs/assets/screenshots/agentcare-architecture-visual.svg)
-
-- **CLI / Services**: entry points (`python -m agentcare`, FastAPI apps).
-- **Usecases**: business orchestration (single source of truth for workflow logic).
-- **Ports**: interface contracts to keep core logic provider-agnostic.
-- **Adapters**: concrete implementations for booking, email, memory, analytics.
-- **External**: Bolna, Mistral, Cal, Resend, Supabase/Postgres.
-
-### Operational data model (what is stored)
-
-![Data Model](docs/assets/screenshots/agentcare-data-model.svg)
-
-Main entities:
-- `customer_profiles`: canonical patient/customer identity + latest memory.
-- `call_executions`: per-call outcomes, summaries, extracted data.
-- `appointments`: booking records linked to customer + execution.
-- `call_lifecycle_events`: state timeline for call observability.
-
-### Codebase layout (where things live)
-
-```text
+```
 src/agentcare/
-  usecases/        # workflow/business orchestration
-  ports/           # contracts/interfaces
-  connectors/      # appointment connectors (cal, mock)
-  customer/        # memory stores (json/postgres)
-  email/           # resend notifier
-  analytics/       # persistence + dashboard query layer
-  workflows/       # workflow registry and metadata
-  policies/        # decision logic (automation/triage)
-  doctor/          # doctor assignment logic
-  cli.py           # command entrypoints
+  usecases/         workflow orchestration; one module per registered workflow
+  ports/            interface contracts (provider-agnostic)
+  connectors/       appointment connectors (cal, mock)
+  customer/         memory store implementations (json, postgres)
+  email/            resend notifier
+  analysis/         risk and signal analysis (healthcare, burnout, trend)
+  extraction/       transcript → structured data (LLM + regex)
+  policies/         policy decision logic (frontdesk, wellness)
+  workflows/        registry and metadata
+  wellness/         wellness history store
+  cli.py            command entry points
 
 services/
-  webhooks/        # ingestion API adapter
-  analytics/       # metrics API adapter
-  dashboard/       # dashboard API + static UI
-  llm_gateway/     # local openai-compatible gateway
-  mock_ehr/        # local mock scheduling service
+  webhooks/         call lifecycle ingestion
+  analytics/        operations metrics API
+  dashboard/        dashboard API + static UI
+  llm_gateway/      local OpenAI-compatible endpoint
+  mock_ehr/         local mock scheduling
 
-scripts/
-  dev/run helpers and safety checks
+experiments/        reproducible benchmark layer (separate install)
+scripts/            development and operational helpers
 ```
 
-### Request path (design intent)
+A single execution router (`usecases/execution_router.py`) selects the workflow at runtime — by explicit `workflow` parameter, by Bolna agent name fallback, or by registry default — so the same pipeline serves webhook, sync, dashboard, and CLI ingestion without duplication.
 
-`services/webhooks` -> `usecases/frontdesk` -> `ports` -> adapters (`customer/connectors/email/analytics`) -> external APIs/storage.
+![Data model](docs/assets/screenshots/agentcare-data-model.svg)
 
-This structure keeps transport concerns separate from business logic and makes the framework easier to test, extend, and maintain.
+The four entities that matter for operations are `customer_profiles` (canonical identity plus latest memory), `call_executions` (per-call outcomes, summaries, extracted fields), `appointments` (booking records linked to customer and execution), and `call_lifecycle_events` (state timeline for observability). The wellness workflow adds a per-employee score history that lives alongside these.
 
----
+## Reproducible experiments
 
-## Useful Commands
+The `experiments/` directory is a separate benchmark layer with heavier dependencies (scikit-learn, numpy, matplotlib) that the runtime does not need. It exists to reproduce the quantitative results that motivate design choices in the wellness workflow — extraction quality, trend-detection accuracy, predictive modelling at a four-session horizon, and adversarial robustness on edge-case transcripts.
 
 ```bash
-python3 -m agentcare doctor
-python3 -m agentcare framework provider-test
-python3 -m agentcare framework list-workflows
-python3 -m agentcare framework process-execution --execution-json artifacts/sample_execution.json
-python3 -m agentcare up --dry-run
+pip install -r experiments/requirements.txt
+bash scripts/run_all_experiments.sh
 ```
 
----
+A deterministic synthetic corpus (180 employees × 8 sessions, seeded) is generated, all four experiments run in sequence, and results land as JSON metrics, CSV predictions, PNG figures, and pickled models in `experiments/output/`. Total runtime is roughly 30 seconds. See `experiments/README.md` for the headline numbers and how to interpret them.
 
-## Architecture + Docs
+## Useful commands
 
-- This `README.md` is the primary all-in-one guide (setup + run + architecture + flow).
-- Main architecture reference (optional deep dive): `ARCHITECTURE.md`
-- Docs hub (optional): `docs/README.md`
-- Setup guide (optional): `docs/setup/one-command-local.md`
-- Services map (optional): `docs/api/services.md`
+```bash
+python -m agentcare doctor                                              # diagnose configuration
+python -m agentcare framework provider-test                             # check provider connectivity
+python -m agentcare framework list-workflows                            # registered workflows
+python -m agentcare framework create-agent --workflow frontdesk_booking # provision an agent
+python -m agentcare framework process-execution \                       # replay an execution offline
+    --execution-json artifacts/sample_execution.json
+python -m agentcare up --dry-run                                        # validate without starting
+./scripts/check_no_secrets.sh                                           # pre-commit safety check
+```
 
----
-
-## Quality Checks
+## Quality and contribution
 
 ```bash
 pytest -q
-python3 -m build
-twine check dist/*
+python -m build && twine check dist/*
 ```
 
-## Contributing
+The full suite includes the burnout analysis, trend detection, wellness use-case, execution router, and frontdesk regression tests. See `CONTRIBUTING.md` for the development workflow and `CHANGELOG.md` for the version history. The architecture deep-dive lives in `ARCHITECTURE.md`.
 
-See `CONTRIBUTING.md` and `CHANGELOG.md`.
+## Academic provenance
+
+The `wellness_checkin` workflow and the accompanying `experiments/` layer were developed as the deliverable for the M.Sc. Data Science & AI individual project at the Indian Institute of Science Education and Research (IISER) Tirupati, prepared for May 2026 submission. The design and methodology — MBI dimension mapping, Mann–Kendall trend detection, and the predictive model targeting future burnout at a multi-session horizon — are documented in the project's end-semester report. The healthcare workflows (`frontdesk_booking`, `care_navigation`, `followup_outreach`) and the underlying framework predate this work and remain the project's primary contribution as an open-source library.
