@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class DoctorProfile(BaseModel):
@@ -69,6 +72,6 @@ def load_doctor_schema(path: Path = Path("artifacts/doctors.json")) -> list[Doct
             doctors = [DoctorProfile.model_validate(x) for x in data if isinstance(x, dict)]
             if doctors:
                 return doctors
-    except Exception:
-        pass
+    except (OSError, ValueError) as exc:  # JSONDecodeError and pydantic errors are ValueErrors
+        logger.warning("Ignoring invalid doctor schema %s (%s); using defaults", path, exc)
     return DEFAULT_DOCTORS

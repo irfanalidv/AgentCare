@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from agentcare.llm import MistralLLM
 from agentcare.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationExtraction(BaseModel):
@@ -73,5 +76,11 @@ def extract_conversation_fields(transcript: str) -> ConversationExtraction:
             max_tokens=500,
         )
         return ConversationExtraction.model_validate(data)
-    except Exception:
+    except Exception as exc:
+        # Callers treat an empty extraction as "unknown"; record why it is empty.
+        logger.warning(
+            "Conversation extraction failed (%s: %s); returning empty fields",
+            type(exc).__name__,
+            exc,
+        )
         return ConversationExtraction()

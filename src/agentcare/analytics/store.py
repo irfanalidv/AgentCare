@@ -10,6 +10,7 @@ try:
 except Exception:  # pragma: no cover - optional dependency path
     psycopg = None  # type: ignore[assignment,unused-ignore]
 
+from agentcare._jsonio import DB_CONNECT_TIMEOUT_SEC, read_json, write_json_atomic
 from agentcare.settings import settings
 
 
@@ -28,17 +29,7 @@ def _db_ready() -> bool:
 
 def _append_json_fallback(event: dict[str, Any]) -> None:
     path = Path("artifacts/call_events.json")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rows: list[dict[str, Any]]
-    if path.exists():
-        try:
-            rows = json.loads(path.read_text("utf-8"))
-            if not isinstance(rows, list):
-                rows = []
-        except Exception:
-            rows = []
-    else:
-        rows = []
+    rows: list[dict[str, Any]] = read_json(path, [], expected=list)
     execution_id = event.get("execution_id")
     if execution_id:
         # Upsert by execution_id to avoid duplicate noisy rows in local fallback mode.
@@ -54,7 +45,7 @@ def _append_json_fallback(event: dict[str, Any]) -> None:
             rows.append(event)
     else:
         rows.append(event)
-    path.write_text(json.dumps(rows, indent=2, default=str), "utf-8")
+    write_json_atomic(path, rows)
 
 
 def _normalize_lifecycle_state(status: str | None) -> str:
@@ -81,17 +72,7 @@ def _normalize_lifecycle_state(status: str | None) -> str:
 
 def _append_lifecycle_json(event: dict[str, Any]) -> None:
     path = Path("artifacts/call_lifecycle_events.json")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rows: list[dict[str, Any]]
-    if path.exists():
-        try:
-            rows = json.loads(path.read_text("utf-8"))
-            if not isinstance(rows, list):
-                rows = []
-        except Exception:
-            rows = []
-    else:
-        rows = []
+    rows: list[dict[str, Any]] = read_json(path, [], expected=list)
 
     dedupe_key = (
         str(event.get("execution_id") or ""),
@@ -109,7 +90,7 @@ def _append_lifecycle_json(event: dict[str, Any]) -> None:
                 return
     rows.append(event)
     rows.sort(key=lambda x: str(x.get("ts") or ""))
-    path.write_text(json.dumps(rows, indent=2, default=str), "utf-8")
+    write_json_atomic(path, rows)
 
 
 def persist_call_lifecycle_event(
@@ -136,7 +117,10 @@ def persist_call_lifecycle_event(
         return {"stored": "json_fallback", "state": state}
 
     try:
-        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+        with (
+            psycopg.connect(settings.database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC) as conn,
+            conn.cursor() as cur,
+        ):
             cur.execute(
                 """
                     CREATE TABLE IF NOT EXISTS call_lifecycle_events (
@@ -174,7 +158,12 @@ def get_call_lifecycle(execution_id: str) -> dict[str, Any]:
 
     if _db_ready():
         try:
-            with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+            with (
+                psycopg.connect(
+                    settings.database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC
+                ) as conn,
+                conn.cursor() as cur,
+            ):
                 cur.execute(
                     """
                         SELECT execution_id, status, state, source, details, ts
@@ -263,7 +252,10 @@ def persist_call_event(
         return {"stored": "json_fallback"}
 
     try:
-        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+        with (
+            psycopg.connect(settings.database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC) as conn,
+            conn.cursor() as cur,
+        ):
             # Migration-safe for existing deployments.
             cur.execute(
                 """

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from agentcare.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,10 +46,14 @@ def _load_policy() -> dict:
         if p.exists():
             try:
                 data = json.loads(p.read_text("utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.warning("Ignoring unreadable policy file %s (%s); using defaults", p, exc)
+            else:
                 if isinstance(data, dict):
                     return data
-            except Exception:
-                pass
+                logger.warning("Policy file %s is not a JSON object; using defaults", p)
+        else:
+            logger.warning("FRONTDESK_POLICY_PATH %s does not exist; using defaults", p)
     return _default_policy()
 
 

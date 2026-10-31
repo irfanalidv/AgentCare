@@ -22,7 +22,7 @@ def assign_doctor(
     """
     Route a patient to the best-fit doctor using lightweight specialty heuristics.
     """
-    directory = doctors or load_doctor_schema()
+    directory = load_doctor_schema() if doctors is None else doctors
     if not directory:
         return DoctorAssignment(
             doctor_id="unassigned",

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from agentcare._jsonio import read_json, write_json_atomic
 from agentcare.calendar import parse_preferred_slot
 from agentcare.llm import MistralLLM
 from agentcare.settings import settings
 from agentcare.usecases.deps import FrontdeskDeps, build_frontdesk_deps
+
+logger = logging.getLogger(__name__)
 
 
 def _execution_key(execution: dict[str, Any]) -> str | None:
@@ -94,8 +97,9 @@ def _compose_patient_facing_summary(
         polished = re.sub(r"\s*\(\d+\s*characters?\)\s*$", "", polished, flags=re.I).strip()
         if polished:
             return polished[:280]
-    except Exception:
-        pass
+    except Exception as exc:
+        # Polishing is cosmetic; keep the deterministic summary if the LLM fails.
+        logger.warning("Patient-facing summary polish failed (%s); using fallback", exc)
     return fallback_summary
 
 
@@ -238,20 +242,11 @@ def _rag_backfill_fields(
 
 
 def _read_processed(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    try:
-        data = json.loads(path.read_text("utf-8"))
-        if isinstance(data, list):
-            return {str(x) for x in data}
-    except Exception:
-        pass
-    return set()
+    return {str(x) for x in read_json(path, [], expected=list)}
 
 
 def _write_processed(path: Path, values: set[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(sorted(values), indent=2), "utf-8")
+    write_json_atomic(path, sorted(values))
 
 
 @dataclass

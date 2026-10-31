@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -12,6 +11,7 @@ try:
 except Exception:  # pragma: no cover - optional dependency path
     psycopg = None  # type: ignore[assignment,unused-ignore]
 
+from agentcare._jsonio import DB_CONNECT_TIMEOUT_SEC, read_json, write_json_atomic
 from agentcare.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,9 @@ def _can_connect_postgres(database_url: str) -> bool:
         return False
     try:
         with (
-            psycopg.connect(_database_url_with_ssl(database_url), connect_timeout=3) as conn,
+            psycopg.connect(
+                _database_url_with_ssl(database_url), connect_timeout=DB_CONNECT_TIMEOUT_SEC
+            ) as conn,
             conn.cursor() as cur,
         ):
             cur.execute("SELECT 1")
@@ -156,13 +158,11 @@ class CustomerMemoryStore:
             self._write([])
 
     def _read(self) -> list[dict[str, Any]]:
-        try:
-            return json.loads(self.path.read_text("utf-8"))
-        except Exception:
-            return []
+        rows: list[Any] = read_json(self.path, [], expected=list)
+        return [r for r in rows if isinstance(r, dict)]
 
     def _write(self, rows: list[dict[str, Any]]) -> None:
-        self.path.write_text(json.dumps(rows, indent=2), "utf-8")
+        write_json_atomic(self.path, rows)
 
     def _next_id(self, rows: list[dict[str, Any]]) -> str:
         return f"cust_{len(rows) + 1:06d}"
@@ -262,7 +262,7 @@ class PostgresCustomerMemoryStore:
             raise RuntimeError(
                 "Postgres extras not installed. Install with: pip install 'agentcare[postgres]'"
             )
-        return psycopg.connect(self.database_url)
+        return psycopg.connect(self.database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC)
 
     def get_all(self) -> list[CustomerProfile]:
         with self._conn() as conn, conn.cursor() as cur:
@@ -482,7 +482,10 @@ def init_postgres_schema(database_url: str) -> None:
         raise RuntimeError(
             "Postgres extras not installed. Install with: pip install 'agentcare[postgres]'"
         )
-    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+    with (
+        psycopg.connect(database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC) as conn,
+        conn.cursor() as cur,
+    ):
         cur.execute(
             """
             CREATE SEQUENCE IF NOT EXISTS customer_id_seq START 1;

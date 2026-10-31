@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from agentcare._jsonio import DB_CONNECT_TIMEOUT_SEC
 from agentcare.settings import settings
 
 
@@ -22,7 +23,7 @@ def _connect():
         raise RuntimeError(
             "psycopg is required for database-backed analytics. Install agentcare[postgres]."
         ) from e
-    return psycopg.connect(settings.database_url)
+    return psycopg.connect(settings.database_url, connect_timeout=DB_CONNECT_TIMEOUT_SEC)
 
 
 def _parse_ts(s: str | None) -> datetime | None:

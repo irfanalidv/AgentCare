@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
+from agentcare._jsonio import read_json, write_json_atomic
 from agentcare.settings import settings
 
 
@@ -15,14 +15,11 @@ class JsonWellnessHistoryStore:
             self._write({})
 
     def _read(self) -> dict[str, list[dict[str, Any]]]:
-        try:
-            data = json.loads(self.path.read_text("utf-8"))
-        except Exception:
-            return {}
-        return data if isinstance(data, dict) else {}
+        data: dict[str, list[dict[str, Any]]] = read_json(self.path, {}, expected=dict)
+        return data
 
     def _write(self, rows: dict[str, list[dict[str, Any]]]) -> None:
-        self.path.write_text(json.dumps(rows, indent=2, default=str), "utf-8")
+        write_json_atomic(self.path, rows)
 
     def load_entries(self, employee_id: str) -> list[dict[str, Any]]:
         rows = self._read()

@@ -62,7 +62,9 @@ def _root(
 
 
 def _print_json(data: Any) -> None:
-    print(json.dumps(data, indent=2, default=str))
+    # Plain stdout, not rich.print: rich wraps long lines (breaking JSON strings) and
+    # treats "[...]" as markup, so piped output was not always valid JSON.
+    typer.echo(json.dumps(data, indent=2, default=str))
 
 
 def _is_non_placeholder(value: str | None) -> bool:

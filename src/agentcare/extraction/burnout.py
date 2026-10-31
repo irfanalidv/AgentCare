@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from agentcare.llm import MistralLLM
 from agentcare.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class BurnoutExtraction(BaseModel):
@@ -99,5 +102,9 @@ def extract_burnout_fields(transcript: str) -> BurnoutExtraction:
             max_tokens=700,
         )
         return BurnoutExtraction.model_validate(data)
-    except Exception:
+    except Exception as exc:
+        # Callers treat an empty extraction as "unknown"; record why it is empty.
+        logger.warning(
+            "Burnout extraction failed (%s: %s); returning empty fields", type(exc).__name__, exc
+        )
         return BurnoutExtraction()

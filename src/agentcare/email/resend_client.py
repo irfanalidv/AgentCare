@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from datetime import datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -28,6 +29,15 @@ def _html_confirmation(
     doctor_specialty: str | None,
     clinic_name: str,
 ) -> str:
+    # Every interpolated value can come from a call transcript or LLM output, so it is
+    # HTML-escaped; otherwise a caller could inject markup or links into the email.
+    esc = html.escape
+    appointment_id = esc(appointment_id)
+    reason = esc(reason) if reason else reason
+    summary = esc(summary) if summary else summary
+    doctor_name = esc(doctor_name) if doctor_name else doctor_name
+    doctor_specialty = esc(doctor_specialty) if doctor_specialty else doctor_specialty
+    clinic_name = esc(clinic_name)
     summary_block = (
         f"""
         <tr>
@@ -68,8 +78,8 @@ def _html_confirmation(
         if doctor_name
         else ""
     )
-    patient_display = " ".join((patient_name or "there").split()).title()
-    formatted_slot = _format_slot_start(slot_start)
+    patient_display = esc(" ".join((patient_name or "there").split()).title())
+    formatted_slot = esc(_format_slot_start(slot_start))
     return f"""
 <!DOCTYPE html>
 <html>
@@ -117,10 +127,9 @@ def _format_slot_start(slot_start: str) -> str:
     try:
         dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         tz = ZoneInfo(settings.cal_timezone)
-        local = dt.astimezone(tz)
-        return local.strftime("%A, %d %b %Y at %I:%M %p (%Z)")
-    except Exception:
+    except (ValueError, KeyError):  # unparsable slot or unknown timezone name
         return raw
+    return dt.astimezone(tz).strftime("%A, %d %b %Y at %I:%M %p (%Z)")
 
 
 def send_confirmation_email(

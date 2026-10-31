@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
+from agentcare._jsonio import read_json, write_json_atomic
 from agentcare.bolna import BolnaClient
 from agentcare.settings import settings
 from agentcare.usecases import process_agentcare_execution, resolve_execution_workflow
 
 
 def _execution_key(ex: dict[str, Any]) -> str | None:
-    return ex.get("id") or ex.get("execution_id")
+    key = ex.get("id") or ex.get("execution_id")
+    return str(key) if key else None
 
 
 def sync_bolna_executions(
@@ -29,13 +30,11 @@ def sync_bolna_executions(
     upserted_customers = 0
     automated = 0
     automation_processed_path = Path("artifacts/automation_processed.json")
-    if automation_processed_path.exists() and not force_automation:
-        try:
-            automation_processed = set(json.loads(automation_processed_path.read_text("utf-8")))
-        except Exception:
-            automation_processed = set()
-    else:
-        automation_processed = set()
+    automation_processed: set[str] = (
+        set()
+        if force_automation
+        else {str(x) for x in read_json(automation_processed_path, [], expected=list)}
+    )
 
     with BolnaClient(api_key=settings.bolna_api_key, base_url=settings.bolna_base_url) as bolna:
         items = bolna.get_all_executions(
@@ -57,7 +56,10 @@ def sync_bolna_executions(
         )
         if getattr(res, "customer_id", None):
             upserted_customers += 1
-        if should_automate and ex_key:
+        # Booking automation only runs for completed calls. Marking an in-progress
+        # execution as automated would skip it forever once it completes.
+        completed = str(ex.get("status") or "").strip().lower() == "completed"
+        if should_automate and ex_key and completed:
             automation_processed.add(ex_key)
             automated += 1
 
@@ -68,9 +70,6 @@ def sync_bolna_executions(
         "automated_executions": automated,
         "executions": rows,
     }
-    automation_processed_path.parent.mkdir(parents=True, exist_ok=True)
-    automation_processed_path.write_text(
-        json.dumps(sorted(automation_processed), indent=2), "utf-8"
-    )
-    out_path.write_text(json.dumps(payload, indent=2, default=str), "utf-8")
+    write_json_atomic(automation_processed_path, sorted(automation_processed))
+    write_json_atomic(out_path, payload)
     return {"ok": True, **payload, "out_path": str(out_path)}

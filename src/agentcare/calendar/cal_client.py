@@ -161,7 +161,9 @@ def _extract_slots(data: Any) -> list[str]:
 
 def _safe_error_text(value: str, *, limit: int = 300) -> str:
     redacted = re.sub(r"cal_(live|test)_[A-Za-z0-9]+", "cal_***", value or "")
-    redacted = re.sub(r"(apiKey=)[^&\\s]+", r"\1***", redacted)
+    # Note: a raw string, so \s is whitespace. The old pattern used "\\s" (a literal
+    # backslash and the letter s), so keys containing "s" were only partly redacted.
+    redacted = re.sub(r"(apiKey=)[^&\s]+", r"\1***", redacted)
     return redacted[:limit].replace("\n", " ")
 
 
@@ -503,7 +505,7 @@ def create_cal_booking(
             },
         )
     except Exception as e:
-        return CalBookingAttempt(ok=False, start_iso=start_iso, error=str(e))
+        return CalBookingAttempt(ok=False, start_iso=start_iso, error=_safe_error_text(str(e)))
 
 
 def _compose_booking_notes(
