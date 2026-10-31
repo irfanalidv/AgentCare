@@ -1,8 +1,11 @@
 name: publish
 
+# Manual-only until PyPI Trusted Publishing is configured for this project
+# (PyPI > project > Settings > Publishing > add a GitHub publisher for this
+# repo + workflow file). Releases are currently uploaded with twine.
+# Once configured, add back:  release: { types: [published] }
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   pypi:
