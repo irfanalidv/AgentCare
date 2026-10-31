@@ -18,13 +18,18 @@ pip install -e ".[web,postgres,email,semantic]"
 ## Quality checks
 
 ```bash
+pre-commit install            # once: ruff, ruff-format and hygiene hooks on every commit
 ruff check .
 ruff format --check .
+mypy
 python3 -m compileall src services
-pytest -q
+pytest --cov=agentcare        # CI fails below 75% coverage
 python3 -m build
 twine check dist/*
 ```
+
+Tests run offline: HTTP is served by `httpx.MockTransport` (see `tests/conftest.py`) and LLM
+calls are faked, so no API keys are needed.
 
 ## Pull requests
 
