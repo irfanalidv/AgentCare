@@ -75,7 +75,7 @@ def run(output_dir: str, n_per_arch: int = 200, window_sizes: list[int] | None =
                 y_pred.append(tr.direction)
 
         cm = confusion_matrix(y_true, y_pred, labels=archetypes)
-        acc = float(np.mean([t == p for t, p in zip(y_true, y_pred)]))
+        acc = float(np.mean([t == p for t, p in zip(y_true, y_pred, strict=True)]))
         results_per_window[str(w)] = {
             "accuracy": acc,
             "confusion": cm.tolist(),
@@ -101,7 +101,7 @@ def run(output_dir: str, n_per_arch: int = 200, window_sizes: list[int] | None =
 
     # Accuracy vs window plot
     fig, ax = plt.subplots(figsize=(4, 3))
-    ws = sorted(int(k) for k in results_per_window.keys())
+    ws = sorted(int(k) for k in results_per_window)
     accs = [results_per_window[str(w)]["accuracy"] for w in ws]
     ax.plot(ws, accs, "o-")
     ax.set_xlabel("Window size (sessions)")
@@ -113,7 +113,7 @@ def run(output_dir: str, n_per_arch: int = 200, window_sizes: list[int] | None =
     plt.close(fig)
 
     summary = {"n_per_archetype": n_per_arch, "by_window": results_per_window}
-    with open(out / "metrics.json", "w", encoding="utf-8") as fh:
+    with (out / "metrics.json").open("w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
     print(json.dumps(summary, indent=2))
     return summary

@@ -50,7 +50,7 @@ class FeatureVector:
     feature_names: list[str]
 
     def as_dict(self) -> dict[str, float]:
-        return dict(zip(self.feature_names, self.values))
+        return dict(zip(self.feature_names, self.values, strict=True))
 
 
 def _mean(xs: list[float]) -> float:

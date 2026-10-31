@@ -30,7 +30,11 @@ class _FakeClient:
 
 def _llm(monkeypatch, content) -> tuple[MistralLLM, _FakeClient]:
     fake = _FakeClient(content)
-    monkeypatch.setattr(mistral_mod, "Mistral", lambda api_key: fake)
+    def factory(api_key, **kwargs):
+        fake.init_kwargs = kwargs
+        return fake
+
+    monkeypatch.setattr(mistral_mod, "Mistral", factory)
     return MistralLLM(api_key="k", model="mistral-small-latest"), fake
 
 
@@ -79,3 +83,15 @@ def test_cli_version_flag():
     )
     assert proc.returncode == 0
     assert agentcare.__version__ in proc.stdout
+
+
+def test_client_gets_a_timeout(monkeypatch):
+    llm, fake = _llm(monkeypatch, "x")
+    assert fake.init_kwargs == {"timeout_ms": 30_000}
+
+
+def test_unexpected_response_shape_falls_back_to_str(monkeypatch):
+    fake = SimpleNamespace(chat=SimpleNamespace(complete=lambda **kw: SimpleNamespace(choices=[])))
+    monkeypatch.setattr(mistral_mod, "Mistral", lambda api_key, **kw: fake)
+    out = MistralLLM(api_key="k", model="m").chat(messages=[])
+    assert "choices=[]" in out

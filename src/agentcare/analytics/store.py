@@ -8,7 +8,7 @@ from typing import Any
 try:
     import psycopg
 except Exception:  # pragma: no cover - optional dependency path
-    psycopg = None  # type: ignore[assignment]
+    psycopg = None  # type: ignore[assignment,unused-ignore]
 
 from agentcare.settings import settings
 
@@ -136,10 +136,9 @@ def persist_call_lifecycle_event(
         return {"stored": "json_fallback", "state": state}
 
     try:
-        with psycopg.connect(settings.database_url) as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     CREATE TABLE IF NOT EXISTS call_lifecycle_events (
                         event_id BIGSERIAL PRIMARY KEY,
                         execution_id TEXT NOT NULL,
@@ -152,16 +151,16 @@ def persist_call_lifecycle_event(
                     CREATE INDEX IF NOT EXISTS idx_call_lifecycle_exec_ts
                     ON call_lifecycle_events (execution_id, ts DESC);
                     """
-                )
-                cur.execute(
-                    """
+            )
+            cur.execute(
+                """
                     INSERT INTO call_lifecycle_events (
                         execution_id, status, state, source, details, ts
                     ) VALUES (%s,%s,%s,%s,%s::jsonb,now())
                     """,
-                    (execution_id, status, state, source, json.dumps(details or {})),
-                )
-                conn.commit()
+                (execution_id, status, state, source, json.dumps(details or {})),
+            )
+            conn.commit()
         return {"stored": "postgres", "state": state}
     except Exception as e:
         _append_lifecycle_json(event)
@@ -175,18 +174,17 @@ def get_call_lifecycle(execution_id: str) -> dict[str, Any]:
 
     if _db_ready():
         try:
-            with psycopg.connect(settings.database_url) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
+            with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
                         SELECT execution_id, status, state, source, details, ts
                         FROM call_lifecycle_events
                         WHERE execution_id = %s
                         ORDER BY ts ASC
                         """,
-                        (execution_id,),
-                    )
-                    rows = cur.fetchall()
+                    (execution_id,),
+                )
+                rows = cur.fetchall()
             events = [
                 {
                     "execution_id": r[0],
@@ -265,88 +263,87 @@ def persist_call_event(
         return {"stored": "json_fallback"}
 
     try:
-        with psycopg.connect(settings.database_url) as conn:
-            with conn.cursor() as cur:
-                # Migration-safe for existing deployments.
-                cur.execute(
-                    """
-                    ALTER TABLE IF EXISTS call_executions
-                    ADD COLUMN IF NOT EXISTS patient_facing_summary TEXT NULL;
-                    ALTER TABLE IF EXISTS call_executions
-                    ADD COLUMN IF NOT EXISTS internal_ops_summary TEXT NULL;
-                    """
+        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+            # Migration-safe for existing deployments.
+            cur.execute(
+                """
+                ALTER TABLE IF EXISTS call_executions
+                ADD COLUMN IF NOT EXISTS patient_facing_summary TEXT NULL;
+                ALTER TABLE IF EXISTS call_executions
+                ADD COLUMN IF NOT EXISTS internal_ops_summary TEXT NULL;
+                """
+            )
+            cur.execute(
+                """
+                INSERT INTO call_executions (
+                    execution_id, customer_id, status, transcript, conversation_time, total_cost,
+                    source_phone, target_phone, appointment_id, slot_start, intent, follow_up_required,
+                    patient_facing_summary, internal_ops_summary,
+                    extracted_data, context_details, telephony_data, created_at, updated_at
+                ) VALUES (
+                    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,now(),now()
                 )
+                ON CONFLICT (execution_id) DO UPDATE
+                SET status = EXCLUDED.status,
+                    transcript = COALESCE(EXCLUDED.transcript, call_executions.transcript),
+                    conversation_time = COALESCE(EXCLUDED.conversation_time, call_executions.conversation_time),
+                    total_cost = COALESCE(EXCLUDED.total_cost, call_executions.total_cost),
+                    source_phone = COALESCE(EXCLUDED.source_phone, call_executions.source_phone),
+                    target_phone = COALESCE(EXCLUDED.target_phone, call_executions.target_phone),
+                    appointment_id = COALESCE(EXCLUDED.appointment_id, call_executions.appointment_id),
+                    slot_start = COALESCE(EXCLUDED.slot_start, call_executions.slot_start),
+                    intent = COALESCE(EXCLUDED.intent, call_executions.intent),
+                    follow_up_required = COALESCE(EXCLUDED.follow_up_required, call_executions.follow_up_required),
+                    patient_facing_summary = COALESCE(
+                        EXCLUDED.patient_facing_summary,
+                        call_executions.patient_facing_summary
+                    ),
+                    internal_ops_summary = COALESCE(
+                        EXCLUDED.internal_ops_summary,
+                        call_executions.internal_ops_summary
+                    ),
+                    extracted_data = call_executions.extracted_data || EXCLUDED.extracted_data,
+                    context_details = call_executions.context_details || EXCLUDED.context_details,
+                    telephony_data = call_executions.telephony_data || EXCLUDED.telephony_data,
+                    updated_at = now()
+                """,
+                (
+                    execution_id,
+                    customer_id,
+                    status,
+                    transcript,
+                    conversation_time,
+                    total_cost,
+                    source_phone,
+                    target_phone,
+                    appointment_id,
+                    slot_start,
+                    intent,
+                    follow_up_required,
+                    patient_facing_summary,
+                    internal_ops_summary,
+                    json.dumps(extracted_data or {}),
+                    json.dumps(context_details or {}),
+                    json.dumps(telephony_data or {}),
+                ),
+            )
+            # Keep appointment timeline table in sync if appointment keys exist.
+            if appointment_id:
                 cur.execute(
                     """
-                    INSERT INTO call_executions (
-                        execution_id, customer_id, status, transcript, conversation_time, total_cost,
-                        source_phone, target_phone, appointment_id, slot_start, intent, follow_up_required,
-                        patient_facing_summary, internal_ops_summary,
-                        extracted_data, context_details, telephony_data, created_at, updated_at
-                    ) VALUES (
-                        %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,now(),now()
-                    )
-                    ON CONFLICT (execution_id) DO UPDATE
-                    SET status = EXCLUDED.status,
-                        transcript = COALESCE(EXCLUDED.transcript, call_executions.transcript),
-                        conversation_time = COALESCE(EXCLUDED.conversation_time, call_executions.conversation_time),
-                        total_cost = COALESCE(EXCLUDED.total_cost, call_executions.total_cost),
-                        source_phone = COALESCE(EXCLUDED.source_phone, call_executions.source_phone),
-                        target_phone = COALESCE(EXCLUDED.target_phone, call_executions.target_phone),
-                        appointment_id = COALESCE(EXCLUDED.appointment_id, call_executions.appointment_id),
-                        slot_start = COALESCE(EXCLUDED.slot_start, call_executions.slot_start),
-                        intent = COALESCE(EXCLUDED.intent, call_executions.intent),
-                        follow_up_required = COALESCE(EXCLUDED.follow_up_required, call_executions.follow_up_required),
-                        patient_facing_summary = COALESCE(
-                            EXCLUDED.patient_facing_summary,
-                            call_executions.patient_facing_summary
-                        ),
-                        internal_ops_summary = COALESCE(
-                            EXCLUDED.internal_ops_summary,
-                            call_executions.internal_ops_summary
-                        ),
-                        extracted_data = call_executions.extracted_data || EXCLUDED.extracted_data,
-                        context_details = call_executions.context_details || EXCLUDED.context_details,
-                        telephony_data = call_executions.telephony_data || EXCLUDED.telephony_data,
+                    INSERT INTO appointments (
+                        appointment_id, customer_id, slot_start, status, source_execution_id, created_at, updated_at
+                    ) VALUES (%s,%s,%s,%s,%s,now(),now())
+                    ON CONFLICT (appointment_id) DO UPDATE
+                    SET customer_id = COALESCE(EXCLUDED.customer_id, appointments.customer_id),
+                        slot_start = COALESCE(EXCLUDED.slot_start, appointments.slot_start),
+                        status = COALESCE(EXCLUDED.status, appointments.status),
+                        source_execution_id = COALESCE(EXCLUDED.source_execution_id, appointments.source_execution_id),
                         updated_at = now()
                     """,
-                    (
-                        execution_id,
-                        customer_id,
-                        status,
-                        transcript,
-                        conversation_time,
-                        total_cost,
-                        source_phone,
-                        target_phone,
-                        appointment_id,
-                        slot_start,
-                        intent,
-                        follow_up_required,
-                        patient_facing_summary,
-                        internal_ops_summary,
-                        json.dumps(extracted_data or {}),
-                        json.dumps(context_details or {}),
-                        json.dumps(telephony_data or {}),
-                    ),
+                    (appointment_id, customer_id, slot_start, "booked", execution_id),
                 )
-                # Keep appointment timeline table in sync if appointment keys exist.
-                if appointment_id:
-                    cur.execute(
-                        """
-                        INSERT INTO appointments (
-                            appointment_id, customer_id, slot_start, status, source_execution_id, created_at, updated_at
-                        ) VALUES (%s,%s,%s,%s,%s,now(),now())
-                        ON CONFLICT (appointment_id) DO UPDATE
-                        SET customer_id = COALESCE(EXCLUDED.customer_id, appointments.customer_id),
-                            slot_start = COALESCE(EXCLUDED.slot_start, appointments.slot_start),
-                            status = COALESCE(EXCLUDED.status, appointments.status),
-                            source_execution_id = COALESCE(EXCLUDED.source_execution_id, appointments.source_execution_id),
-                            updated_at = now()
-                        """,
-                        (appointment_id, customer_id, slot_start, "booked", execution_id),
-                    )
-                conn.commit()
+            conn.commit()
         return {"stored": "postgres"}
     except Exception as e:
         _append_json_fallback(event)

@@ -5,4 +5,4 @@ from agentcare.connectors.appointments import (
     get_appointment_connector,
 )
 
-__all__ = ["get_appointment_connector", "AppointmentConnector", "SlotCheckResult", "BookingResult"]
+__all__ = ["AppointmentConnector", "BookingResult", "SlotCheckResult", "get_appointment_connector"]

@@ -10,7 +10,7 @@ from typing import Any
 try:
     import psycopg
 except Exception:  # pragma: no cover - optional dependency path
-    psycopg = None  # type: ignore[assignment]
+    psycopg = None  # type: ignore[assignment,unused-ignore]
 
 from agentcare.settings import settings
 
@@ -26,8 +26,11 @@ def _rag_vector_lookup(rows: list[dict[str, Any]], query: str) -> dict[str, Any]
         try:  # LangChain >= 0.1 / 1.x
             from langchain_core.documents import Document
         except ImportError:  # very old LangChain
-            from langchain.docstore.document import Document  # type: ignore
-        from ragfallback.utils import create_faiss_vector_store, create_open_source_embeddings  # type: ignore
+            from langchain.docstore.document import Document  # type: ignore[no-redef,import-not-found,unused-ignore]
+        from ragfallback.utils import (
+            create_faiss_vector_store,
+            create_open_source_embeddings,
+        )
 
         if not rows:
             return {"found": False, "engine": "ragfallback_vector", "reason": "empty_store"}
@@ -107,10 +110,12 @@ def _can_connect_postgres(database_url: str) -> bool:
     if psycopg is None:
         return False
     try:
-        with psycopg.connect(_database_url_with_ssl(database_url), connect_timeout=3) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                cur.fetchone()
+        with (
+            psycopg.connect(_database_url_with_ssl(database_url), connect_timeout=3) as conn,
+            conn.cursor() as cur,
+        ):
+            cur.execute("SELECT 1")
+            cur.fetchone()
         return True
     except Exception as e:
         logger.warning("Postgres reachability check failed, falling back to JSON store: %s", e)
@@ -170,7 +175,7 @@ class CustomerMemoryStore:
     ) -> CustomerProfile | None:
         rows = self._read()
         for r in rows:
-            if email and r.get("email") and r.get("email").lower() == email.lower():
+            if email and str(r.get("email") or "").lower() == email.lower():
                 return CustomerProfile(**r)
             if phone_e164 and r.get("phone_e164") == phone_e164:
                 return CustomerProfile(**r)
@@ -192,7 +197,7 @@ class CustomerMemoryStore:
 
         idx = None
         for i, r in enumerate(rows):
-            if email and r.get("email") and r.get("email").lower() == email.lower():
+            if email and str(r.get("email") or "").lower() == email.lower():
                 idx = i
                 break
             if phone_e164 and r.get("phone_e164") == phone_e164:
@@ -260,17 +265,16 @@ class PostgresCustomerMemoryStore:
         return psycopg.connect(self.database_url)
 
     def get_all(self) -> list[CustomerProfile]:
-        with self._conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT customer_id, name, email, phone_e164, created_at, updated_at,
-                           interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
-                    FROM customer_profiles
-                    ORDER BY created_at ASC
-                    """
-                )
-                rows = cur.fetchall()
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT customer_id, name, email, phone_e164, created_at, updated_at,
+                       interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
+                FROM customer_profiles
+                ORDER BY created_at ASC
+                """
+            )
+            rows = cur.fetchall()
         out: list[CustomerProfile] = []
         for r in rows:
             out.append(
@@ -296,45 +300,44 @@ class PostgresCustomerMemoryStore:
     ) -> CustomerProfile | None:
         if not email and not phone_e164:
             return None
-        with self._conn() as conn:
-            with conn.cursor() as cur:
-                if email and phone_e164:
-                    cur.execute(
-                        """
-                        SELECT customer_id, name, email, phone_e164, created_at, updated_at,
-                               interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
-                        FROM customer_profiles
-                        WHERE lower(email) = lower(%s) OR phone_e164 = %s
-                        ORDER BY updated_at DESC
-                        LIMIT 1
-                        """,
-                        (email, phone_e164),
-                    )
-                elif email:
-                    cur.execute(
-                        """
-                        SELECT customer_id, name, email, phone_e164, created_at, updated_at,
-                               interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
-                        FROM customer_profiles
-                        WHERE lower(email) = lower(%s)
-                        ORDER BY updated_at DESC
-                        LIMIT 1
-                        """,
-                        (email,),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        SELECT customer_id, name, email, phone_e164, created_at, updated_at,
-                               interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
-                        FROM customer_profiles
-                        WHERE phone_e164 = %s
-                        ORDER BY updated_at DESC
-                        LIMIT 1
-                        """,
-                        (phone_e164,),
-                    )
-                row = cur.fetchone()
+        with self._conn() as conn, conn.cursor() as cur:
+            if email and phone_e164:
+                cur.execute(
+                    """
+                    SELECT customer_id, name, email, phone_e164, created_at, updated_at,
+                           interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
+                    FROM customer_profiles
+                    WHERE lower(email) = lower(%s) OR phone_e164 = %s
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """,
+                    (email, phone_e164),
+                )
+            elif email:
+                cur.execute(
+                    """
+                    SELECT customer_id, name, email, phone_e164, created_at, updated_at,
+                           interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
+                    FROM customer_profiles
+                    WHERE lower(email) = lower(%s)
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """,
+                    (email,),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT customer_id, name, email, phone_e164, created_at, updated_at,
+                           interaction_count, last_summary, last_status, last_appointment_id, last_slot_start, notes
+                    FROM customer_profiles
+                    WHERE phone_e164 = %s
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """,
+                    (phone_e164,),
+                )
+            row = cur.fetchone()
         if not row:
             return None
         return CustomerProfile(
@@ -365,65 +368,21 @@ class PostgresCustomerMemoryStore:
         note: str | None = None,
     ) -> CustomerProfile:
         existing = self.find_exact(email=email, phone_e164=phone_e164)
-        with self._conn() as conn:
-            with conn.cursor() as cur:
-                if existing is None:
-                    cur.execute("SELECT nextval('customer_id_seq')")
-                    n = cur.fetchone()[0]
-                    cid = f"cust_{n:06d}"
-                    notes = [note] if note else []
-                    cur.execute(
-                        """
-                        INSERT INTO customer_profiles (
-                            customer_id, name, email, phone_e164, created_at, updated_at, interaction_count,
-                            last_summary, last_status, last_appointment_id, last_slot_start, notes
-                        ) VALUES (%s,%s,%s,%s,now(),now(),1,%s,%s,%s,%s,%s)
-                        """,
-                        (
-                            cid,
-                            name,
-                            email,
-                            phone_e164,
-                            summary,
-                            status,
-                            appointment_id,
-                            slot_start,
-                            notes,
-                        ),
-                    )
-                    conn.commit()
-                    return CustomerProfile(
-                        customer_id=cid,
-                        name=name,
-                        email=email,
-                        phone_e164=phone_e164,
-                        interaction_count=1,
-                        last_summary=summary,
-                        last_status=status,
-                        last_appointment_id=appointment_id,
-                        last_slot_start=slot_start,
-                        notes=notes,
-                    )
-
-                notes = list(existing.notes)
-                if note:
-                    notes.append(note)
+        with self._conn() as conn, conn.cursor() as cur:
+            if existing is None:
+                cur.execute("SELECT nextval('customer_id_seq')")
+                n = cur.fetchone()[0]
+                cid = f"cust_{n:06d}"
+                notes = [note] if note else []
                 cur.execute(
                     """
-                    UPDATE customer_profiles
-                    SET name = COALESCE(%s, name),
-                        email = COALESCE(%s, email),
-                        phone_e164 = COALESCE(%s, phone_e164),
-                        updated_at = now(),
-                        interaction_count = interaction_count + 1,
-                        last_summary = COALESCE(%s, last_summary),
-                        last_status = COALESCE(%s, last_status),
-                        last_appointment_id = COALESCE(%s, last_appointment_id),
-                        last_slot_start = COALESCE(%s, last_slot_start),
-                        notes = %s
-                    WHERE customer_id = %s
+                    INSERT INTO customer_profiles (
+                        customer_id, name, email, phone_e164, created_at, updated_at, interaction_count,
+                        last_summary, last_status, last_appointment_id, last_slot_start, notes
+                    ) VALUES (%s,%s,%s,%s,now(),now(),1,%s,%s,%s,%s,%s)
                     """,
                     (
+                        cid,
                         name,
                         email,
                         phone_e164,
@@ -432,21 +391,64 @@ class PostgresCustomerMemoryStore:
                         appointment_id,
                         slot_start,
                         notes,
-                        existing.customer_id,
                     ),
                 )
                 conn.commit()
-                existing.name = name or existing.name
-                existing.email = email or existing.email
-                existing.phone_e164 = phone_e164 or existing.phone_e164
-                existing.interaction_count += 1
-                existing.updated_at = _utc_now()
-                existing.last_summary = summary or existing.last_summary
-                existing.last_status = status or existing.last_status
-                existing.last_appointment_id = appointment_id or existing.last_appointment_id
-                existing.last_slot_start = slot_start or existing.last_slot_start
-                existing.notes = notes
-                return existing
+                return CustomerProfile(
+                    customer_id=cid,
+                    name=name,
+                    email=email,
+                    phone_e164=phone_e164,
+                    interaction_count=1,
+                    last_summary=summary,
+                    last_status=status,
+                    last_appointment_id=appointment_id,
+                    last_slot_start=slot_start,
+                    notes=notes,
+                )
+
+            notes = list(existing.notes)
+            if note:
+                notes.append(note)
+            cur.execute(
+                """
+                UPDATE customer_profiles
+                SET name = COALESCE(%s, name),
+                    email = COALESCE(%s, email),
+                    phone_e164 = COALESCE(%s, phone_e164),
+                    updated_at = now(),
+                    interaction_count = interaction_count + 1,
+                    last_summary = COALESCE(%s, last_summary),
+                    last_status = COALESCE(%s, last_status),
+                    last_appointment_id = COALESCE(%s, last_appointment_id),
+                    last_slot_start = COALESCE(%s, last_slot_start),
+                    notes = %s
+                WHERE customer_id = %s
+                """,
+                (
+                    name,
+                    email,
+                    phone_e164,
+                    summary,
+                    status,
+                    appointment_id,
+                    slot_start,
+                    notes,
+                    existing.customer_id,
+                ),
+            )
+            conn.commit()
+            existing.name = name or existing.name
+            existing.email = email or existing.email
+            existing.phone_e164 = phone_e164 or existing.phone_e164
+            existing.interaction_count += 1
+            existing.updated_at = _utc_now()
+            existing.last_summary = summary or existing.last_summary
+            existing.last_status = status or existing.last_status
+            existing.last_appointment_id = appointment_id or existing.last_appointment_id
+            existing.last_slot_start = slot_start or existing.last_slot_start
+            existing.notes = notes
+            return existing
 
     def semantic_lookup(self, query: str) -> dict[str, Any]:
         rows = [asdict(p) for p in self.get_all()]
@@ -459,22 +461,20 @@ class PostgresCustomerMemoryStore:
         return lexical
 
     def is_execution_processed(self, execution_id: str) -> bool:
-        with self._conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT 1 FROM processed_executions WHERE execution_id = %s LIMIT 1",
-                    (execution_id,),
-                )
-                return cur.fetchone() is not None
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM processed_executions WHERE execution_id = %s LIMIT 1",
+                (execution_id,),
+            )
+            return cur.fetchone() is not None
 
     def mark_execution_processed(self, execution_id: str) -> None:
-        with self._conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO processed_executions (execution_id, created_at) VALUES (%s, now()) ON CONFLICT DO NOTHING",
-                    (execution_id,),
-                )
-                conn.commit()
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO processed_executions (execution_id, created_at) VALUES (%s, now()) ON CONFLICT DO NOTHING",
+                (execution_id,),
+            )
+            conn.commit()
 
 
 def init_postgres_schema(database_url: str) -> None:
@@ -482,98 +482,97 @@ def init_postgres_schema(database_url: str) -> None:
         raise RuntimeError(
             "Postgres extras not installed. Install with: pip install 'agentcare[postgres]'"
         )
-    with psycopg.connect(database_url) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                CREATE SEQUENCE IF NOT EXISTS customer_id_seq START 1;
-                CREATE TABLE IF NOT EXISTS customer_profiles (
-                    customer_id TEXT PRIMARY KEY,
-                    name TEXT NULL,
-                    email TEXT NULL,
-                    phone_e164 TEXT NULL,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    interaction_count INTEGER NOT NULL DEFAULT 0,
-                    last_summary TEXT NULL,
-                    last_status TEXT NULL,
-                    last_appointment_id TEXT NULL,
-                    last_slot_start TEXT NULL,
-                    notes TEXT[] NOT NULL DEFAULT '{}'
-                );
-                CREATE INDEX IF NOT EXISTS idx_customer_profiles_email ON customer_profiles (lower(email));
-                CREATE INDEX IF NOT EXISTS idx_customer_profiles_phone ON customer_profiles (phone_e164);
-                CREATE TABLE IF NOT EXISTS processed_executions (
-                    execution_id TEXT PRIMARY KEY,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                );
-                CREATE TABLE IF NOT EXISTS call_executions (
-                    execution_id TEXT PRIMARY KEY,
-                    customer_id TEXT NULL REFERENCES customer_profiles(customer_id) ON DELETE SET NULL,
-                    status TEXT NULL,
-                    transcript TEXT NULL,
-                    conversation_time DOUBLE PRECISION NULL,
-                    total_cost DOUBLE PRECISION NULL,
-                    source_phone TEXT NULL,
-                    target_phone TEXT NULL,
-                    appointment_id TEXT NULL,
-                    slot_start TEXT NULL,
-                    intent TEXT NULL,
-                    follow_up_required BOOLEAN NULL,
-                    patient_facing_summary TEXT NULL,
-                    internal_ops_summary TEXT NULL,
-                    extracted_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-                    context_details JSONB NOT NULL DEFAULT '{}'::jsonb,
-                    telephony_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                );
-                ALTER TABLE IF EXISTS call_executions
-                    ADD COLUMN IF NOT EXISTS patient_facing_summary TEXT NULL;
-                ALTER TABLE IF EXISTS call_executions
-                    ADD COLUMN IF NOT EXISTS internal_ops_summary TEXT NULL;
-                CREATE INDEX IF NOT EXISTS idx_call_executions_created_at ON call_executions (created_at DESC);
-                CREATE INDEX IF NOT EXISTS idx_call_executions_status ON call_executions (status);
-                CREATE INDEX IF NOT EXISTS idx_call_executions_customer_id ON call_executions (customer_id);
-                CREATE INDEX IF NOT EXISTS idx_call_executions_target_phone ON call_executions (target_phone);
+    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE SEQUENCE IF NOT EXISTS customer_id_seq START 1;
+            CREATE TABLE IF NOT EXISTS customer_profiles (
+                customer_id TEXT PRIMARY KEY,
+                name TEXT NULL,
+                email TEXT NULL,
+                phone_e164 TEXT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                interaction_count INTEGER NOT NULL DEFAULT 0,
+                last_summary TEXT NULL,
+                last_status TEXT NULL,
+                last_appointment_id TEXT NULL,
+                last_slot_start TEXT NULL,
+                notes TEXT[] NOT NULL DEFAULT '{}'
+            );
+            CREATE INDEX IF NOT EXISTS idx_customer_profiles_email ON customer_profiles (lower(email));
+            CREATE INDEX IF NOT EXISTS idx_customer_profiles_phone ON customer_profiles (phone_e164);
+            CREATE TABLE IF NOT EXISTS processed_executions (
+                execution_id TEXT PRIMARY KEY,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+            CREATE TABLE IF NOT EXISTS call_executions (
+                execution_id TEXT PRIMARY KEY,
+                customer_id TEXT NULL REFERENCES customer_profiles(customer_id) ON DELETE SET NULL,
+                status TEXT NULL,
+                transcript TEXT NULL,
+                conversation_time DOUBLE PRECISION NULL,
+                total_cost DOUBLE PRECISION NULL,
+                source_phone TEXT NULL,
+                target_phone TEXT NULL,
+                appointment_id TEXT NULL,
+                slot_start TEXT NULL,
+                intent TEXT NULL,
+                follow_up_required BOOLEAN NULL,
+                patient_facing_summary TEXT NULL,
+                internal_ops_summary TEXT NULL,
+                extracted_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+                context_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+                telephony_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+            ALTER TABLE IF EXISTS call_executions
+                ADD COLUMN IF NOT EXISTS patient_facing_summary TEXT NULL;
+            ALTER TABLE IF EXISTS call_executions
+                ADD COLUMN IF NOT EXISTS internal_ops_summary TEXT NULL;
+            CREATE INDEX IF NOT EXISTS idx_call_executions_created_at ON call_executions (created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_call_executions_status ON call_executions (status);
+            CREATE INDEX IF NOT EXISTS idx_call_executions_customer_id ON call_executions (customer_id);
+            CREATE INDEX IF NOT EXISTS idx_call_executions_target_phone ON call_executions (target_phone);
 
-                CREATE TABLE IF NOT EXISTS appointments (
-                    appointment_id TEXT PRIMARY KEY,
-                    customer_id TEXT NULL REFERENCES customer_profiles(customer_id) ON DELETE SET NULL,
-                    slot_start TEXT NULL,
-                    status TEXT NULL,
-                    source_execution_id TEXT NULL,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                );
-                CREATE INDEX IF NOT EXISTS idx_appointments_customer_id ON appointments (customer_id);
-                CREATE INDEX IF NOT EXISTS idx_appointments_created_at ON appointments (created_at DESC);
+            CREATE TABLE IF NOT EXISTS appointments (
+                appointment_id TEXT PRIMARY KEY,
+                customer_id TEXT NULL REFERENCES customer_profiles(customer_id) ON DELETE SET NULL,
+                slot_start TEXT NULL,
+                status TEXT NULL,
+                source_execution_id TEXT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_appointments_customer_id ON appointments (customer_id);
+            CREATE INDEX IF NOT EXISTS idx_appointments_created_at ON appointments (created_at DESC);
 
-                CREATE TABLE IF NOT EXISTS call_lifecycle_events (
-                    event_id BIGSERIAL PRIMARY KEY,
-                    execution_id TEXT NOT NULL,
-                    status TEXT NULL,
-                    state TEXT NOT NULL,
-                    source TEXT NOT NULL,
-                    details JSONB NOT NULL DEFAULT '{}'::jsonb,
-                    ts TIMESTAMPTZ NOT NULL DEFAULT now()
-                );
-                CREATE INDEX IF NOT EXISTS idx_call_lifecycle_exec_ts
-                    ON call_lifecycle_events (execution_id, ts DESC);
+            CREATE TABLE IF NOT EXISTS call_lifecycle_events (
+                event_id BIGSERIAL PRIMARY KEY,
+                execution_id TEXT NOT NULL,
+                status TEXT NULL,
+                state TEXT NOT NULL,
+                source TEXT NOT NULL,
+                details JSONB NOT NULL DEFAULT '{}'::jsonb,
+                ts TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_call_lifecycle_exec_ts
+                ON call_lifecycle_events (execution_id, ts DESC);
 
-                CREATE OR REPLACE VIEW analytics_calls_daily AS
-                SELECT
-                  date_trunc('day', created_at) AS day,
-                  COUNT(*) AS total_calls,
-                  COUNT(*) FILTER (WHERE status = 'completed') AS completed_calls,
-                  COALESCE(AVG(conversation_time),0) AS avg_conversation_time,
-                  COALESCE(SUM(total_cost),0) AS total_cost
-                FROM call_executions
-                GROUP BY 1
-                ORDER BY 1 DESC;
-                """
-            )
-            conn.commit()
+            CREATE OR REPLACE VIEW analytics_calls_daily AS
+            SELECT
+              date_trunc('day', created_at) AS day,
+              COUNT(*) AS total_calls,
+              COUNT(*) FILTER (WHERE status = 'completed') AS completed_calls,
+              COALESCE(AVG(conversation_time),0) AS avg_conversation_time,
+              COALESCE(SUM(total_cost),0) AS total_cost
+            FROM call_executions
+            GROUP BY 1
+            ORDER BY 1 DESC;
+            """
+        )
+        conn.commit()
 
 
 def get_customer_store():

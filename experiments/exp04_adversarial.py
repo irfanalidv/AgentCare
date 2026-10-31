@@ -101,9 +101,9 @@ def run(output_dir: str) -> dict:
         "acuity_false_positives": len(fp_acuity),
     }
 
-    with open(out / "metrics.json", "w", encoding="utf-8") as fh:
+    with (out / "metrics.json").open("w", encoding="utf-8") as fh:
         json.dump(metrics, fh, indent=2)
-    with open(out / "details.json", "w", encoding="utf-8") as fh:
+    with (out / "details.json").open("w", encoding="utf-8") as fh:
         json.dump(rows, fh, indent=2)
 
     print(json.dumps(metrics, indent=2))

@@ -79,27 +79,26 @@ def _is_synthetic_event(row: dict[str, Any]) -> bool:
 
 
 def get_overview(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[str, Any]:
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH f AS (
-                  SELECT *
-                  FROM call_executions
-                  WHERE (%s::timestamptz IS NULL OR created_at >= %s::timestamptz)
-                    AND (%s::timestamptz IS NULL OR created_at <= %s::timestamptz)
-                )
-                SELECT
-                  COUNT(*) AS total_calls,
-                  COUNT(*) FILTER (WHERE status = 'completed') AS completed_calls,
-                  COUNT(*) FILTER (WHERE status IN ('no-answer','busy','failed','error','canceled')) AS failed_calls,
-                  COALESCE(AVG(conversation_time),0) AS avg_conversation_time,
-                  COALESCE(SUM(total_cost),0) AS total_cost
-                FROM f
-                """,
-                (from_ts, from_ts, to_ts, to_ts),
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            WITH f AS (
+              SELECT *
+              FROM call_executions
+              WHERE (%s::timestamptz IS NULL OR created_at >= %s::timestamptz)
+                AND (%s::timestamptz IS NULL OR created_at <= %s::timestamptz)
             )
-            row = cur.fetchone()
+            SELECT
+              COUNT(*) AS total_calls,
+              COUNT(*) FILTER (WHERE status = 'completed') AS completed_calls,
+              COUNT(*) FILTER (WHERE status IN ('no-answer','busy','failed','error','canceled')) AS failed_calls,
+              COALESCE(AVG(conversation_time),0) AS avg_conversation_time,
+              COALESCE(SUM(total_cost),0) AS total_cost
+            FROM f
+            """,
+            (from_ts, from_ts, to_ts, to_ts),
+        )
+        row = cur.fetchone()
     total = int(row[0] or 0)
     completed = int(row[1] or 0)
     return {
@@ -119,10 +118,9 @@ def get_calls_timeseries(
     interval: str = "day",
 ) -> list[dict[str, Any]]:
     interval = interval if interval in {"hour", "day", "week"} else "day"
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                f"""
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"""
                 SELECT date_trunc('{interval}', created_at) AS bucket,
                        COUNT(*) AS total_calls,
                        COUNT(*) FILTER (WHERE status = 'completed') AS completed_calls,
@@ -133,9 +131,9 @@ def get_calls_timeseries(
                 GROUP BY 1
                 ORDER BY 1 ASC
                 """,
-                (from_ts, from_ts, to_ts, to_ts),
-            )
-            rows = cur.fetchall()
+            (from_ts, from_ts, to_ts, to_ts),
+        )
+        rows = cur.fetchall()
     return [
         {
             "bucket": str(r[0]),
@@ -148,10 +146,9 @@ def get_calls_timeseries(
 
 
 def get_funnel(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[str, Any]:
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
                 WITH f AS (
                   SELECT *
                   FROM call_executions
@@ -165,9 +162,9 @@ def get_funnel(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[
                   COUNT(*) FILTER (WHERE follow_up_required IS TRUE) AS followups_required
                 FROM f
                 """,
-                (from_ts, from_ts, to_ts, to_ts),
-            )
-            row = cur.fetchone()
+            (from_ts, from_ts, to_ts, to_ts),
+        )
+        row = cur.fetchone()
     return {
         "calls_started": int(row[0] or 0),
         "appointment_intents": int(row[1] or 0),
@@ -177,10 +174,9 @@ def get_funnel(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[
 
 
 def get_customer_cohorts(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[str, Any]:
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
                 WITH f AS (
                   SELECT *
                   FROM customer_profiles
@@ -193,9 +189,9 @@ def get_customer_cohorts(*, from_ts: str | None = None, to_ts: str | None = None
                   COUNT(*) FILTER (WHERE interaction_count >= 3) AS repeat_customers
                 FROM f
                 """,
-                (from_ts, from_ts, to_ts, to_ts),
-            )
-            row = cur.fetchone()
+            (from_ts, from_ts, to_ts, to_ts),
+        )
+        row = cur.fetchone()
     return {
         "new_customers": int(row[0] or 0),
         "returning_customers": int(row[1] or 0),
@@ -204,22 +200,21 @@ def get_customer_cohorts(*, from_ts: str | None = None, to_ts: str | None = None
 
 
 def get_call_detail(execution_id: str) -> dict[str, Any] | None:
-    with _connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT
-                  execution_id, customer_id, status, transcript, conversation_time, total_cost,
-                  source_phone, target_phone, appointment_id, slot_start, intent, follow_up_required,
-                  patient_facing_summary, internal_ops_summary, extracted_data, context_details, telephony_data,
-                  created_at, updated_at
-                FROM call_executions
-                WHERE execution_id = %s
-                LIMIT 1
-                """,
-                (execution_id,),
-            )
-            row = cur.fetchone()
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT
+              execution_id, customer_id, status, transcript, conversation_time, total_cost,
+              source_phone, target_phone, appointment_id, slot_start, intent, follow_up_required,
+              patient_facing_summary, internal_ops_summary, extracted_data, context_details, telephony_data,
+              created_at, updated_at
+            FROM call_executions
+            WHERE execution_id = %s
+            LIMIT 1
+            """,
+            (execution_id,),
+        )
+        row = cur.fetchone()
     if not row:
         return None
     return {

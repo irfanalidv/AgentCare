@@ -561,7 +561,7 @@ def up(
             started.append({"name": spec["name"], "ok": False, "error": "script_missing"})
             continue
         with log_path.open("ab") as fh:
-            proc = subprocess.Popen(  # noqa: S603
+            proc = subprocess.Popen(
                 ["/bin/bash", str(script_path)],
                 stdout=fh,
                 stderr=fh,

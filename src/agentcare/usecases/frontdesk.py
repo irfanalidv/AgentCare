@@ -529,15 +529,15 @@ def process_frontdesk_execution(
         and extracted.get("customer_email")
         and slot_start
         and cal_result is not None
+        and cal_result.get("ok") is False
     ):
-        if cal_result.get("ok") is False:
-            email_result = {
-                "ok": False,
-                "skipped": True,
-                "reason": "booking_failed",
-                "error": cal_result.get("error") or "appointment booking did not complete",
-                "to_email": extracted.get("customer_email"),
-            }
+        email_result = {
+            "ok": False,
+            "skipped": True,
+            "reason": "booking_failed",
+            "error": cal_result.get("error") or "appointment booking did not complete",
+            "to_email": extracted.get("customer_email"),
+        }
 
     if appointment_id:
         extracted["appointment_id"] = appointment_id

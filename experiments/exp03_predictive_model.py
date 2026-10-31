@@ -71,7 +71,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     label_by_emp: dict[str, int] = {}
     horizon_start = None
 
-    with open(corpus_path, encoding="utf-8") as fh:
+    with Path(corpus_path).open(encoding="utf-8") as fh:
         for line in fh:
             r = json.loads(line)
             horizon_start = r["horizon_start"]
@@ -119,13 +119,13 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
 
     summary = {
         "horizon_start": horizon_start,
-        "n_employees": int(len(y)),
+        "n_employees": len(y),
         "positive_rate": float(y.mean()),
         "use_llm": use_llm,
         "full": metrics,
         "ablation_no_llm_categorical": metrics_ablated,
     }
-    with open(out / "summary.json", "w", encoding="utf-8") as fh:
+    with (out / "summary.json").open("w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
     return summary
 

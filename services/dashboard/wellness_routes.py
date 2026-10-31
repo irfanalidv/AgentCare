@@ -49,7 +49,7 @@ def cohort_summary() -> dict[str, Any]:
     or high_acuity_flag set).
     """
     store = get_wellness_history_store()
-    rows = store._read()  # noqa: SLF001 — the store is internal; this view is read-only
+    rows = store._read()
 
     if not isinstance(rows, dict) or not rows:
         return {
@@ -115,7 +115,7 @@ def flagged_employees() -> dict[str, Any]:
     latest session, sorted by latest composite score descending.
     """
     store = get_wellness_history_store()
-    rows = store._read()  # noqa: SLF001
+    rows = store._read()
     if not isinstance(rows, dict):
         rows = {}
 
@@ -153,7 +153,7 @@ def employee_detail(employee_id: str) -> dict[str, Any]:
     classification on the composite-score time series.
     """
     store = get_wellness_history_store()
-    rows = store._read()  # noqa: SLF001
+    rows = store._read()
     if not isinstance(rows, dict) or employee_id not in rows:
         raise HTTPException(status_code=404, detail=f"unknown employee_id: {employee_id}")
 
@@ -195,7 +195,7 @@ def cohort_series(limit: int = 50) -> dict[str, Any]:
     series, capped at `limit` employees (sorted by latest composite desc).
     """
     store = get_wellness_history_store()
-    rows = store._read()  # noqa: SLF001
+    rows = store._read()
     if not isinstance(rows, dict):
         rows = {}
 

@@ -14,12 +14,10 @@ ExecutionProcessingResult = FrontdeskProcessingResult | WellnessExecutionResult
 def resolve_execution_workflow(
     execution: dict[str, Any], *, default: str = "frontdesk_booking"
 ) -> str:
-    metadata = execution.get("metadata") if isinstance(execution.get("metadata"), dict) else {}
-    context = (
-        execution.get("context_details")
-        if isinstance(execution.get("context_details"), dict)
-        else {}
-    )
+    raw_metadata = execution.get("metadata")
+    raw_context = execution.get("context_details")
+    metadata: dict[str, Any] = raw_metadata if isinstance(raw_metadata, dict) else {}
+    context: dict[str, Any] = raw_context if isinstance(raw_context, dict) else {}
     candidates = [
         execution.get("workflow"),
         execution.get("workflow_name"),

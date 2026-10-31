@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import uuid4
 
 import httpx
@@ -263,7 +263,7 @@ class FHIRAppointmentConnector:
 
         # Ensure end time exists for Appointment resource.
         end_iso = _derive_end_iso(chosen_start)
-        appointment_payload = {
+        appointment_payload: dict[str, Any] = {
             "resourceType": "Appointment",
             "status": "booked",
             "description": reason or "Scheduled by AgentCare",
@@ -289,10 +289,9 @@ class FHIRAppointmentConnector:
                 }
             ],
         }
+        actor: dict[str, Any] = appointment_payload["participant"][0]["actor"]
         if patient_email:
-            appointment_payload["participant"][0]["actor"]["telecom"] = [
-                {"system": "email", "value": patient_email}
-            ]
+            actor["telecom"] = [{"system": "email", "value": patient_email}]
         if chosen_slot_id:
             appointment_payload["slot"] = [{"reference": f"Slot/{chosen_slot_id}"}]
         if self.organization_id:

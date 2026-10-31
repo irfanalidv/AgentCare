@@ -70,7 +70,7 @@ def sync_bolna_executions(
     }
     automation_processed_path.parent.mkdir(parents=True, exist_ok=True)
     automation_processed_path.write_text(
-        json.dumps(sorted(list(automation_processed)), indent=2), "utf-8"
+        json.dumps(sorted(automation_processed), indent=2), "utf-8"
     )
     out_path.write_text(json.dumps(payload, indent=2, default=str), "utf-8")
     return {"ok": True, **payload, "out_path": str(out_path)}

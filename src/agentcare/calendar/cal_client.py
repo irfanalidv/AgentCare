@@ -156,7 +156,7 @@ def _extract_slots(data: Any) -> list[str]:
                     out.append(val.strip())
             elif isinstance(s, str):
                 out.append(s.strip())
-    return sorted(list(dict.fromkeys(out)))
+    return sorted(dict.fromkeys(out))
 
 
 def _safe_error_text(value: str, *, limit: int = 300) -> str:

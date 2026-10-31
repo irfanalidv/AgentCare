@@ -39,7 +39,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     out.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict] = []
-    with open(corpus_path, encoding="utf-8") as fh:
+    with Path(corpus_path).open(encoding="utf-8") as fh:
         for line in fh:
             r = json.loads(line)
             transcript = r["transcript"]
@@ -101,7 +101,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     import csv
 
     keys = list(rows[0].keys())
-    with open(out / "predictions.csv", "w", encoding="utf-8", newline="") as fh:
+    with (out / "predictions.csv").open("w", encoding="utf-8", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=keys)
         w.writeheader()
         for r in rows:
@@ -127,7 +127,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
         fig.savefig(out / f"scatter_{dim.lower()}.png", dpi=140)
         plt.close(fig)
 
-    with open(out / "metrics.json", "w", encoding="utf-8") as fh:
+    with (out / "metrics.json").open("w", encoding="utf-8") as fh:
         json.dump(metrics, fh, indent=2)
 
     print(json.dumps(metrics, indent=2))

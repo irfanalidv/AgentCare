@@ -9,7 +9,7 @@ from typing import Any
 try:
     import psycopg
 except Exception:  # pragma: no cover - optional dependency path
-    psycopg = None  # type: ignore[assignment]
+    psycopg = None  # type: ignore[assignment,unused-ignore]
 
 from agentcare.doctor import DoctorProfile, load_doctor_schema
 from agentcare.settings import settings
@@ -42,10 +42,9 @@ def _load_call_events() -> list[dict[str, Any]]:
     """
     if _db_ready():
         try:
-            with _db_connect() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
+            with _db_connect() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
                         SELECT
                             execution_id,
                             customer_id,
@@ -67,8 +66,8 @@ def _load_call_events() -> list[dict[str, Any]]:
                         ORDER BY updated_at DESC
                         LIMIT 2000
                         """
-                    )
-                    rows = cur.fetchall()
+                )
+                rows = cur.fetchall()
             out: list[dict[str, Any]] = []
             for r in rows:
                 out.append(
@@ -101,17 +100,16 @@ def _load_call_events() -> list[dict[str, Any]]:
 def _load_customers() -> list[dict[str, Any]]:
     if _db_ready():
         try:
-            with _db_connect() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
+            with _db_connect() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
                         SELECT customer_id, phone_e164, name, email, interaction_count
                         FROM customer_profiles
                         ORDER BY updated_at DESC
                         LIMIT 5000
                         """
-                    )
-                    rows = cur.fetchall()
+                )
+                rows = cur.fetchall()
             out: list[dict[str, Any]] = []
             for r in rows:
                 out.append(

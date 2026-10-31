@@ -133,7 +133,7 @@ def process_wellness_execution(
         except Exception as exc:
             notes.append(f"history_loader_error:{exc}")
 
-    trend = trend_detector(history + [analysis.composite_score])
+    trend = trend_detector([*history, analysis.composite_score])
     decision = policy(
         risk_band=analysis.risk_band,
         high_acuity_flag=analysis.high_acuity_flag,

@@ -1,33 +1,51 @@
+"""Thin wrapper over the Mistral chat API with JSON-object coercion."""
+
 from __future__ import annotations
 
 import json
+import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 try:  # mistralai >= 2 moved the client under ``mistralai.client``
     from mistralai.client import Mistral
 except ImportError:  # mistralai 1.x
-    from mistralai import Mistral  # type: ignore[no-redef,attr-defined]
+    from mistralai import Mistral  # type: ignore[no-redef,attr-defined,unused-ignore]
+
+logger = logging.getLogger(__name__)
+
+#: Default per-request timeout. The SDK has no timeout unless one is given.
+DEFAULT_TIMEOUT_S = 30.0
 
 
 class MistralLLM:
-    def __init__(self, *, api_key: str, model: str) -> None:
-        self._client = Mistral(api_key=api_key)
+    """Minimal chat client used by extraction, evaluation and summary polishing.
+
+    Args:
+        api_key: Mistral API key.
+        model: Chat model name, e.g. ``"mistral-small-latest"``.
+        timeout_s: Per-request timeout in seconds (the SDK default is unbounded).
+    """
+
+    def __init__(self, *, api_key: str, model: str, timeout_s: float = DEFAULT_TIMEOUT_S) -> None:
+        self._client = Mistral(api_key=api_key, timeout_ms=int(timeout_s * 1000))
         self._model = model
 
     def chat(
         self, *, messages: list[dict[str, Any]], temperature: float = 0.2, max_tokens: int = 800
     ) -> str:
+        """Return the assistant text for ``messages`` (OpenAI-style role/content dicts)."""
         resp = self._client.chat.complete(
             model=self._model,
-            messages=messages,
+            messages=cast(Any, messages),
             temperature=temperature,
             max_tokens=max_tokens,
         )
         # SDK response is a Pydantic model; keep extraction defensive.
         try:
-            content = resp.choices[0].message.content  # type: ignore[attr-defined]
-        except Exception:
+            content = cast(Any, resp).choices[0].message.content
+        except (AttributeError, IndexError, TypeError):
+            logger.warning("Unexpected Mistral response shape: %r", resp)
             return str(resp)
         if isinstance(content, list):  # content chunks (newer SDKs / some models)
             return "".join(getattr(c, "text", "") or "" for c in content)
@@ -41,6 +59,11 @@ class MistralLLM:
         temperature: float = 0.0,
         max_tokens: int = 900,
     ) -> dict[str, Any]:
+        """Chat with a system + user message and parse the reply as a JSON object.
+
+        Raises:
+            ValueError: the reply contains no JSON object.
+        """
         content = self.chat(
             messages=[
                 {"role": "system", "content": system},
@@ -66,7 +89,7 @@ def _coerce_json_object(text: str) -> dict[str, Any]:
         obj = json.loads(cleaned)
         if isinstance(obj, dict):
             return obj
-    except Exception:
+    except json.JSONDecodeError:
         pass
 
     # Try to locate the first {...} block
@@ -77,7 +100,7 @@ def _coerce_json_object(text: str) -> dict[str, Any]:
             obj = json.loads(cleaned[start : end + 1])
             if isinstance(obj, dict):
                 return obj
-        except Exception:
+        except json.JSONDecodeError:
             pass
 
     raise ValueError("Model did not return a JSON object")

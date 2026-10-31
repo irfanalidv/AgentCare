@@ -127,7 +127,7 @@ class BolnaClient:
         Fetch one executions page for an agent.
         Bolna response shapes vary; normalize to list[VoiceExecution].
         """
-        candidate_requests = [
+        candidate_requests: list[tuple[str, dict[str, str | int]]] = [
             (
                 "/executions",
                 {"agent_id": agent_id, "page_number": page_number, "page_size": page_size},

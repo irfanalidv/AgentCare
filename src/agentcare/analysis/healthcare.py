@@ -92,7 +92,7 @@ def _tags_for_text(text: str) -> list[str]:
         if _match_patterns(text, patterns):
             tags.append(category)
     # keep stable and short
-    return sorted(list(dict.fromkeys(tags)))[:4]
+    return sorted(dict.fromkeys(tags))[:4]
 
 
 def analyze_healthcare_context(

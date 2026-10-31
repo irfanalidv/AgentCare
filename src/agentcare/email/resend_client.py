@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 try:
     import resend
 except Exception:  # pragma: no cover - optional dependency path
-    resend = None  # type: ignore[assignment]
+    resend = None  # type: ignore[assignment,unused-ignore]
 
 from agentcare.settings import settings
 
@@ -162,7 +162,7 @@ def send_confirmation_email(
         clinic_name=clinic_name,
     )
 
-    subj = subject or f"Appointment confirmed – {appointment_id}"
+    subj = subject or f"Appointment confirmed – {appointment_id}"  # noqa: RUF001 (typographic dash in subject)
 
     preferred_from = settings.agentcare_email_from or RESEND_DEV_FROM
 

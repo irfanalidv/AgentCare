@@ -60,8 +60,8 @@ def _split_by_employee(
     rng.shuffle(unique_ids)
 
     n = len(unique_ids)
-    n_test = int(round(cfg.test_size * n))
-    n_val = int(round(cfg.val_size * n))
+    n_test = round(cfg.test_size * n)
+    n_val = round(cfg.val_size * n)
     test_ids = set(unique_ids[:n_test])
     val_ids = set(unique_ids[n_test : n_test + n_val])
 
@@ -88,7 +88,7 @@ def _eval(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray) -> dict[s
         "pr_auc": float(average_precision_score(y_true, y_proba))
         if len(set(y_true)) > 1
         else float("nan"),
-        "n": int(len(y_true)),
+        "n": len(y_true),
         "positive_rate": float(np.mean(y_true)),
     }
 
@@ -201,10 +201,10 @@ def train_all(
 
     all_metrics: dict[str, Any] = {
         "config": {
-            "n_total": int(len(y)),
-            "n_train": int(len(y_train)),
-            "n_val": int(len(y_val)),
-            "n_test": int(len(y_test)),
+            "n_total": len(y),
+            "n_train": len(y_train),
+            "n_val": len(y_val),
+            "n_test": len(y_test),
             "feature_names": FEATURE_NAMES,
             "test_size": cfg.test_size,
             "val_size": cfg.val_size,
@@ -243,16 +243,16 @@ def train_all(
         )
         try:
             _save_feature_importance(underlying, name, out_dir, X_train_for_imp, y_train)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             print(f"[warn] feature importance failed for {name}: {exc}")
 
-        with open(out_dir / f"model_{name}.pkl", "wb") as fh:
+        with (out_dir / f"model_{name}.pkl").open("wb") as fh:
             pickle.dump(model, fh)
 
         all_metrics["models"][name] = {"val": m_val, "test": m_test}
         print(f"[{name}] test: {m_test}")
 
-    with open(out_dir / "metrics.json", "w", encoding="utf-8") as fh:
+    with (out_dir / "metrics.json").open("w", encoding="utf-8") as fh:
         json.dump(all_metrics, fh, indent=2)
 
     return all_metrics
