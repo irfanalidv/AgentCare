@@ -21,3 +21,9 @@ dist/
 # Experiments - generated artifacts
 experiments/data/*.jsonl
 experiments/output/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

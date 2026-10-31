@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-build:
     runs-on: ubuntu-latest
@@ -29,10 +33,12 @@ jobs:
         run: ruff check .
       - name: Format check (ruff)
         run: ruff format --check .
+      - name: Type check (mypy)
+        run: mypy
       - name: Compile check
         run: python -m compileall -q src services
-      - name: Run tests
-        run: pytest -q
+      - name: Run tests with coverage
+        run: pytest -q --cov=agentcare --cov-report=term-missing --cov-fail-under=75
       - name: Build package
         run: python -m build
       - name: Twine check

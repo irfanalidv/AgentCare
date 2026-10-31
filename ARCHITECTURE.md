@@ -65,22 +65,22 @@ sequenceDiagram
 
 ## 6) Key Modules
 
-- `src/agentcare/usecases/frontdesk.py`  
+- `src/agentcare/usecases/frontdesk.py`
   Core end-to-end pipeline.
 
-- `src/agentcare/usecases/deps.py`  
+- `src/agentcare/usecases/deps.py`
   Composition root: wires concrete adapters into usecase ports.
 
-- `src/agentcare/ports/`  
+- `src/agentcare/ports/`
   Contract boundary (`customer_store`, `appointments`, `notifier`, `extractor`, `analytics`).
 
-- `src/agentcare/connectors/appointments.py`  
+- `src/agentcare/connectors/appointments.py`
   Scheduling adapters (`cal`, `mock`).
 
-- `src/agentcare/workflows/registry.py`  
+- `src/agentcare/workflows/registry.py`
   Workflow catalog (`frontdesk_booking`, `care_navigation`, `followup_outreach`).
 
-- `src/agentcare/analytics/dashboard_queries.py`  
+- `src/agentcare/analytics/dashboard_queries.py`
   Reusable read models/projections for dashboard APIs.
 
 ---
@@ -110,4 +110,3 @@ sequenceDiagram
 - Add new EHR/calendar provider: implement connector methods and map to port contract.
 - Add new decision policy: extend `policies/frontdesk.py`.
 - Add custom analytics tiles: add projections in `analytics/dashboard_queries.py`.
-
