@@ -5,6 +5,6 @@
 # Install with:
 #     pip install -r experiments/requirements.txt
 
-scikit-learn>=1.4
+scikit-learn>=1.7.2
 numpy>=1.26
 matplotlib>=3.8
