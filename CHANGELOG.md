@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.3.1] - 2026-10-31
+
+### Fixed
+
+- **Local data loss.** The JSON stores (customers, call events, lifecycle events, wellness
+  history, processed executions, sync state) treated an unreadable file as empty and overwrote it
+  on the next write. A corrupt file is now moved aside as `<name>.corrupt-<timestamp>` with a
+  warning, and all writes are atomic (temp file + rename).
+- **Email HTML injection.** Transcript- and LLM-derived fields (name, reason, summary, doctor) are
+  HTML-escaped in confirmation emails.
+- **Bolna sync** no longer marks in-progress executions as automated, which had prevented booking
+  automation from ever running for them once they completed.
+- **Secret redaction.** The Cal.com error redaction regex missed `apiKey` values containing the
+  letter "s"; booking exceptions are now redacted as well.
+- **CLI JSON output** is plain stdout instead of `rich.print`, which wrapped long lines inside JSON
+  strings and interpreted `[...]` as markup.
+- Postgres connections always use a connect timeout; `MistralLLM` sets a 30 s request timeout
+  (the SDK default is unbounded).
+- Extraction, policy-file, doctor-schema and summary-polish failures are logged instead of being
+  silently swallowed.
+- `assign_doctor(doctors=[])` now honours the empty directory instead of loading the defaults.
+- mypy findings: None-unsafe email comparison in the JSON customer store, untyped
+  metadata/context handling in `resolve_execution_workflow`.
+
+### Added
+
+- `MistralLLM(timeout_s=...)`.
+- Examples (all offline): `frontdesk_offline_pipeline.py`, `wellness_trend_monitoring.py`,
+  `fhir_booking_local_server.py`, `transcript_triage_batch.py`.
+- CI: mypy, coverage gate (75%), concurrency; CodeQL workflow; pre-commit config.
+
+### Changed
+
+- Ruff rule set broadened (SIM, C4, RUF, PTH, RET, PIE); `[tool.mypy]` config; test coverage
+  38% -> 79% (113 tests, all offline).
+- README rewritten (architecture diagram, configuration incl. FHIR settings, API overview,
+  references).
+
 ## [0.3.0] - 2026-10-31
 
 ### Added

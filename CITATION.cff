@@ -5,7 +5,7 @@ abstract: "Framework for healthcare voice-AI agents: front-desk booking, follow-
 authors:
   - family-names: Ali
     given-names: Irfan
-version: "0.3.0"
+version: "0.3.1"
 date-released: "2026-10-31"
 license: MIT
 repository-code: "https://github.com/irfanalidv/AgentCare"

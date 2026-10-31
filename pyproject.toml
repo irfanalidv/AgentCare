@@ -1,6 +1,6 @@
 [project]
 name = "agentcare"
-version = "0.3.0"
+version = "0.3.1"
 description = "Framework for healthcare voice-AI agents: front-desk booking, follow-ups, wellness check-ins, transcript extraction, and analytics."
 readme = "README.md"
 requires-python = ">=3.10"
