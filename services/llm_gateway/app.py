@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 from agentcare.llm import MistralLLM
 from agentcare.settings import settings
 
-
 app = FastAPI(title="AgentCare LLM Gateway", version="0.1.0")
 
 
@@ -75,4 +74,3 @@ def chat_completions(req: ChatCompletionsRequest) -> dict[str, Any]:
         ],
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
     }
-

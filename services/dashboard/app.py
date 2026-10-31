@@ -4,7 +4,8 @@ import json
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -31,7 +32,6 @@ from agentcare.extraction import extract_conversation_fields
 from agentcare.settings import settings
 from agentcare.usecases import process_agentcare_execution
 from services.dashboard.wellness_routes import router as wellness_router
-
 
 app = FastAPI(title="AgentCare Dashboard", version="0.2.1")
 app.include_router(wellness_router)
@@ -162,12 +162,13 @@ def _compact_purpose(reason: str | None, intent: str | None) -> str | None:
     return None
 
 
-def _preferred_patient_name(ev: dict[str, Any], ex: dict[str, Any], cust: dict[str, Any] | None) -> str | None:
+def _preferred_patient_name(
+    ev: dict[str, Any], ex: dict[str, Any], cust: dict[str, Any] | None
+) -> str | None:
     # Prefer caller metadata name from telephony context over noisy transcript extraction.
-    context_name = (
-        ((ev.get("context_details") or {}).get("recipient_data") or {}).get("customer_name")
-        or ((ev.get("context_details") or {}).get("recipient_data") or {}).get("name")
-    )
+    context_name = ((ev.get("context_details") or {}).get("recipient_data") or {}).get(
+        "customer_name"
+    ) or ((ev.get("context_details") or {}).get("recipient_data") or {}).get("name")
     return context_name or ex.get("customer_name") or (cust or {}).get("name")
 
 
@@ -317,7 +318,9 @@ def _is_terminal_execution_status(status: str | None) -> bool:
 
 
 def _trigger_execution_processing_async(execution_payload: dict[str, Any]) -> bool:
-    execution_id = str(execution_payload.get("id") or execution_payload.get("execution_id") or "").strip()
+    execution_id = str(
+        execution_payload.get("id") or execution_payload.get("execution_id") or ""
+    ).strip()
     if not execution_id:
         return False
     with _processing_lock:
@@ -353,12 +356,15 @@ def _compose_call_detail_from_execution(payload: dict[str, Any]) -> dict[str, An
             extracted = extract_conversation_fields(transcript).model_dump()
     except Exception:
         extracted = extracted or {}
-    patient_summary = (
-        str(payload.get("patient_facing_summary") or extracted.get("patient_facing_summary") or extracted.get("summary") or "").strip()
-    )
-    ops_summary = (
-        str(payload.get("internal_ops_summary") or extracted.get("internal_ops_summary") or "").strip()
-    )
+    patient_summary = str(
+        payload.get("patient_facing_summary")
+        or extracted.get("patient_facing_summary")
+        or extracted.get("summary")
+        or ""
+    ).strip()
+    ops_summary = str(
+        payload.get("internal_ops_summary") or extracted.get("internal_ops_summary") or ""
+    ).strip()
     if not patient_summary and transcript:
         patient_summary = transcript[:280]
     if not ops_summary:
@@ -392,7 +398,9 @@ def _watch_execution_until_terminal(
     start = time.time()
     processing_kicked = False
     try:
-        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=10.0) as client:
+        with BolnaClient(
+            api_key=api_key, base_url=settings.bolna_base_url, timeout_s=10.0
+        ) as client:
             while (time.time() - start) < timeout_s:
                 ex = client.get_execution(execution_id=execution_id).model_dump()
                 status = str(ex.get("status") or "").lower()
@@ -559,7 +567,9 @@ def call_now(req: CallNowRequest) -> dict[str, Any]:
 
         def _runner() -> None:
             try:
-                with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=30.0) as client:
+                with BolnaClient(
+                    api_key=api_key, base_url=settings.bolna_base_url, timeout_s=30.0
+                ) as client:
                     result = client.make_call(
                         agent_id=agent_id,
                         recipient_phone_number=phone,
@@ -652,9 +662,9 @@ def call_now(req: CallNowRequest) -> dict[str, Any]:
                 if _is_terminal_execution_status(status):
                     break
 
-            effective_status = (
-                str((latest or {}).get("status") or payload.get("status") or "queued").lower()
-            )
+            effective_status = str(
+                (latest or {}).get("status") or payload.get("status") or "queued"
+            ).lower()
             payload["effective_status"] = effective_status
             payload["latest_execution"] = latest
 
@@ -698,8 +708,12 @@ def recent_executions(limit: int = 20) -> dict[str, Any]:
     if _recent_exec_cache["rows"] and (now_ts - float(_recent_exec_cache["ts"])) < 8.0:
         return {"rows": _recent_exec_cache["rows"][:limit], "source": "cache"}
     try:
-        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=8.0) as client:
-            items = client.get_all_executions(agent_id=agent_id, page_size=min(30, limit), max_pages=1)
+        with BolnaClient(
+            api_key=api_key, base_url=settings.bolna_base_url, timeout_s=8.0
+        ) as client:
+            items = client.get_all_executions(
+                agent_id=agent_id, page_size=min(30, limit), max_pages=1
+            )
     except BolnaAuthError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
     except BolnaRequestError as e:
@@ -737,8 +751,11 @@ def call_status(execution_id: str) -> dict[str, Any]:
     if local_terminal and bool(local_terminal.get("terminal")):
         return local_terminal
     try:
+
         def _fetch_provider_execution() -> dict[str, Any]:
-            with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0) as client:
+            with BolnaClient(
+                api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0
+            ) as client:
                 return client.get_execution(execution_id=execution_id).model_dump()
 
         payload = _run_with_timeout(_fetch_provider_execution, timeout_s=8.0)
@@ -753,7 +770,9 @@ def call_status(execution_id: str) -> dict[str, Any]:
             },
         )
         terminal = _is_terminal_execution_status(status)
-        processing_triggered = bool(terminal and status == "completed" and _trigger_execution_processing_async(payload))
+        processing_triggered = bool(
+            terminal and status == "completed" and _trigger_execution_processing_async(payload)
+        )
         return {
             "execution_id": execution_id,
             "status": status,
@@ -821,7 +840,9 @@ def call_detail(execution_id: str) -> dict[str, Any]:
         return {"ok": True, "row": fallback, "source": "local_fallback"}
     api_key, _agent_id = _require_bolna()
     try:
-        with BolnaClient(api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0) as client:
+        with BolnaClient(
+            api_key=api_key, base_url=settings.bolna_base_url, timeout_s=6.0
+        ) as client:
             ex = client.get_execution(execution_id=eid)
             row = _compose_call_detail_from_execution(ex.model_dump())
             return {"ok": True, "row": row, "source": "provider_live"}
@@ -936,4 +957,3 @@ def cases_queue(limit: int = 100) -> dict[str, Any]:
                 cached["source"] = "cache_stale"
                 return cached
             raise
-

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from agentcare.analysis import analyze_healthcare_context
 from agentcare.analytics import persist_call_event, persist_call_lifecycle_event

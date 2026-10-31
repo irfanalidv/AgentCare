@@ -19,16 +19,19 @@ class BurnoutExtraction(BaseModel):
     emotional_exhaustion_0_10: int | None = Field(default=None, ge=0, le=10)
     depersonalisation_0_10: int | None = Field(default=None, ge=0, le=10)
     reduced_accomplishment_0_10: int | None = Field(default=None, ge=0, le=10)
-    primary_stressor: Literal[
-        "workload",
-        "interpersonal",
-        "role_clarity",
-        "autonomy",
-        "recognition",
-        "values_misalignment",
-        "personal_life",
-        "unclear",
-    ] | None = None
+    primary_stressor: (
+        Literal[
+            "workload",
+            "interpersonal",
+            "role_clarity",
+            "autonomy",
+            "recognition",
+            "values_misalignment",
+            "personal_life",
+            "unclear",
+        ]
+        | None
+    ) = None
     engagement_level: Literal["high", "medium", "low"] | None = None
     sleep_disrupted: bool | None = None
     physical_symptoms_reported: bool | None = None

@@ -1,24 +1,37 @@
+<div align="center">
+
 # AgentCare
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI](https://img.shields.io/pypi/v/agentcare.svg)](https://pypi.org/project/agentcare/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/agentcare.svg)](https://pypi.org/project/agentcare/)
-[![Pepy total downloads](https://static.pepy.tech/badge/agentcare)](https://pepy.tech/project/agentcare)
+**Python framework for healthcare voice-AI agents: front-desk booking, follow-ups, wellness check-ins, transcript extraction, and analytics.**
 
-![AgentCare Framework](docs/assets/screenshots/agentcare-framework-overview.png)
+[![PyPI](https://img.shields.io/pypi/v/agentcare.svg)](https://pypi.org/project/agentcare/)
+[![Python](https://img.shields.io/pypi/pyversions/agentcare.svg)](https://pypi.org/project/agentcare/)
+[![CI](https://github.com/irfanalidv/AgentCare/actions/workflows/ci.yml/badge.svg)](https://github.com/irfanalidv/AgentCare/actions/workflows/ci.yml)
+[![Pepy total downloads](https://static.pepy.tech/badge/agentcare)](https://pepy.tech/project/agentcare)
+[![PyPI downloads](https://img.shields.io/pypi/dm/agentcare.svg)](https://pypi.org/project/agentcare/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/irfanalidv/AgentCare/blob/main/LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
+</div>
+
+![AgentCare Framework](https://raw.githubusercontent.com/irfanalidv/AgentCare/main/docs/assets/screenshots/agentcare-framework-overview.png)
 
 AgentCare is a Python framework for voice-AI workflows. It takes phone-call lifecycle events from a telephony provider, runs the transcript through a regex+LLM extractor, applies a domain-specific analysis and policy layer, and dispatches the resulting action through provider-agnostic adapters (Cal for booking, Resend for email, JSON or Postgres for memory).
 
 Four workflows ship registered: three healthcare front-desk workflows and one workplace burnout check-in. The `wellness_checkin` workflow and the `experiments/` benchmark layer were built as the M.Sc. Data Science & AI individual project at IISER Tirupati, prepared for May 2026 submission; the rest of the framework predates that work and continues as an open-source library.
 
-```
-pip install agentcare
+```bash
+pip install agentcare                 # core library + CLI (Python 3.10+)
+pip install "agentcare[web]"          # FastAPI services (webhooks, analytics, dashboard)
+pip install "agentcare[postgres]"     # Postgres-backed customer memory
+pip install "agentcare[email]"        # Resend email notifications
+pip install "agentcare[semantic]"     # ragfallback + FAISS semantic customer lookup
 ```
 
 ## Contents
 
 - [Quick start](#quick-start)
+- [Library usage (offline)](#library-usage-offline)
 - [Workflows](#workflows)
 - [The wellness workflow](#the-wellness-workflow)
 - [Configuration](#configuration)
@@ -30,8 +43,13 @@ pip install agentcare
 
 ## Quick start
 
+The full local stack (`up`) runs the FastAPI services and helper scripts that live in the
+repository, so start it from a clone:
+
 ```bash
-pip install agentcare
+git clone https://github.com/irfanalidv/AgentCare
+cd AgentCare
+pip install -e ".[web]"
 cp .env.example .env       # add BOLNA_API_KEY and MISTRAL_API_KEY
 python -m agentcare up
 ```
@@ -57,11 +75,46 @@ After `up` completes, the running services are:
 | Mock EHR         | http://127.0.0.1:8020/healthz    |
 | LLM gateway      | http://127.0.0.1:8010/healthz    |
 
-![Dashboard overview](docs/assets/screenshots/dashboard-overview.svg)
+![Dashboard overview](https://raw.githubusercontent.com/irfanalidv/AgentCare/main/docs/assets/screenshots/dashboard-overview.svg)
+
+## Library usage (offline)
+
+The analysis and policy layers are plain Python and need no API keys. This scores a check-in
+transcript, tests a score series for a trend, and routes the result:
+
+```python
+from agentcare.analysis import analyze_burnout_context, detect_trend
+from agentcare.policies.wellness import evaluate_wellness_policy
+
+analysis = analyze_burnout_context(
+    transcript=(
+        "I'm exhausted every single day and I can't switch off. "
+        "Honestly I've stopped caring about the team and nothing I do seems to matter."
+    )
+)
+print(analysis.risk_band, round(analysis.composite_score, 2), analysis.ee_tags)
+# low 3.14 ['exhaustion_explicit', 'cant_disconnect']
+
+trend = detect_trend([3.1, 3.8, 4.6, 5.2, 6.4, 7.3])
+print(trend.direction, trend.triage_trigger)
+# deteriorating True
+
+decision = evaluate_wellness_policy(
+    risk_band=analysis.risk_band,
+    high_acuity_flag=analysis.high_acuity_flag,
+    trend_direction=trend.direction,
+    triage_trigger=trend.triage_trigger,
+)
+print(decision.escalation_target, decision.follow_up_sla_hours)
+# confidential_human_followup 24
+```
+
+A single low-risk session would auto-close; the deteriorating trend is what escalates it.
+Run `agentcare --version` to check the installed version.
 
 ## Workflows
 
-![Workflows overview](docs/assets/screenshots/agentcare-workflows-overview.svg)
+![Workflows overview](https://raw.githubusercontent.com/irfanalidv/AgentCare/main/docs/assets/screenshots/agentcare-workflows-overview.svg)
 
 ```bash
 $ python -m agentcare framework list-workflows
@@ -175,8 +228,8 @@ scripts/            development and operational helpers
 
 A single execution router (`usecases/execution_router.py`) selects the workflow at runtime by explicit `workflow` argument, by Bolna agent name fallback, or by registry default. The same router is used by webhook ingestion, the Bolna sync command, the dashboard, and the CLI.
 
-![Architecture](docs/assets/screenshots/agentcare-architecture-visual.svg)
-![Data model](docs/assets/screenshots/agentcare-data-model.svg)
+![Architecture](https://raw.githubusercontent.com/irfanalidv/AgentCare/main/docs/assets/screenshots/agentcare-architecture-visual.svg)
+![Data model](https://raw.githubusercontent.com/irfanalidv/AgentCare/main/docs/assets/screenshots/agentcare-data-model.svg)
 
 The four operational entities are `customer_profiles`, `call_executions`, `appointments`, and `call_lifecycle_events`. The wellness workflow adds a per-employee score history alongside these.
 
@@ -222,12 +275,18 @@ python -m agentcare up --dry-run                # validate without starting
 ## Tests and contribution
 
 ```bash
+pip install -e ".[dev,web]"
+ruff check . && ruff format --check .
 pytest -q
 python -m build && twine check dist/*
 ```
 
-The suite covers burnout analysis, trend detection, the wellness use-case, the execution router, the analytics endpoints, and the existing frontdesk regression tests. See `CONTRIBUTING.md` for the development workflow and `CHANGELOG.md` for the version history.
+The suite covers burnout analysis, trend detection, the wellness use-case, the execution router, the analytics endpoints, and the existing frontdesk regression tests. See [CONTRIBUTING.md](https://github.com/irfanalidv/AgentCare/blob/main/CONTRIBUTING.md) for the development workflow, [SECURITY.md](https://github.com/irfanalidv/AgentCare/blob/main/SECURITY.md) for private vulnerability reports, and [CHANGELOG.md](https://github.com/irfanalidv/AgentCare/blob/main/CHANGELOG.md) for the version history.
 
 ## Project context
 
 The healthcare workflows (`frontdesk_booking`, `care_navigation`, `followup_outreach`) and the framework itself are an independent open-source project published on PyPI under the MIT license. The `wellness_checkin` workflow and the `experiments/` benchmark layer were added in v0.2.0 (April–May 2026) as the deliverable for the M.Sc. Data Science & AI individual project at the Indian Institute of Science Education and Research (IISER) Tirupati. The methodology (MBI dimension mapping, Mann–Kendall trend detection, predictive modelling at a multi-session horizon) and the experimental results are documented in the project's end-semester report. The burnout layer is the academic contribution; the rest is the surrounding library.
+
+## License
+
+MIT. See [LICENSE](https://github.com/irfanalidv/AgentCare/blob/main/LICENSE).

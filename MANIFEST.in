@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include CITATION.cff
+include src/agentcare/py.typed

@@ -95,7 +95,9 @@ def _tags_for_text(text: str) -> list[str]:
     return sorted(list(dict.fromkeys(tags)))[:4]
 
 
-def analyze_healthcare_context(*, transcript: str | None, reason: str | None, intent: str | None) -> HealthcareAnalysis:
+def analyze_healthcare_context(
+    *, transcript: str | None, reason: str | None, intent: str | None
+) -> HealthcareAnalysis:
     text = " ".join([reason or "", transcript or ""]).strip().lower()
     if not text:
         return HealthcareAnalysis(

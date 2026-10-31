@@ -24,7 +24,9 @@ def _regex_extract(transcript: str) -> dict[str, str]:
     phone = re.search(r"\+\d{10,15}", transcript)
     if phone:
         out["customer_phone"] = phone.group(0)
-    appt = re.search(r"\b(?:appt|appointment)[-_ ]?id[: ]+([A-Za-z0-9_-]+)\b", transcript, flags=re.I)
+    appt = re.search(
+        r"\b(?:appt|appointment)[-_ ]?id[: ]+([A-Za-z0-9_-]+)\b", transcript, flags=re.I
+    )
     if appt:
         out["appointment_id"] = appt.group(1)
     slot = re.search(
@@ -53,7 +55,9 @@ def _compose_patient_facing_summary(
     fallback_parts: list[str] = []
     intent = str(extracted.get("intent") or "").replace("_", " ").strip()
     reason = str(extracted.get("reason") or "").strip()
-    slot = str(extracted.get("slot_start") or extracted.get("preferred_date_or_window") or "").strip()
+    slot = str(
+        extracted.get("slot_start") or extracted.get("preferred_date_or_window") or ""
+    ).strip()
     doctor = str(extracted.get("assigned_doctor_name") or "").strip()
     if intent:
         fallback_parts.append(f"Request type: {intent}.")
@@ -109,7 +113,9 @@ def _compose_internal_ops_summary(
     if extracted.get("reason"):
         parts.append(f"reason={extracted.get('reason')}")
     if extracted.get("slot_start") or extracted.get("preferred_date_or_window"):
-        parts.append(f"slot={extracted.get('slot_start') or extracted.get('preferred_date_or_window')}")
+        parts.append(
+            f"slot={extracted.get('slot_start') or extracted.get('preferred_date_or_window')}"
+        )
     if extracted.get("assigned_doctor_name"):
         parts.append(
             f"doctor={extracted.get('assigned_doctor_name')} ({extracted.get('assigned_doctor_specialty') or 'general'})"
@@ -126,7 +132,9 @@ def _compose_internal_ops_summary(
     ops_summary = " | ".join([str(p) for p in parts if p]).strip()
     raw_summary = str(extracted.get("summary") or "").strip()
     looks_internal = ("| note=" in raw_summary) or raw_summary.startswith("intent=")
-    fallback = raw_summary if (raw_summary and not looks_internal) else str(transcript[:350] or "").strip()
+    fallback = (
+        raw_summary if (raw_summary and not looks_internal) else str(transcript[:350] or "").strip()
+    )
     if ops_summary and fallback:
         return f"{ops_summary} | note={fallback}"[:1200]
     if ops_summary:
@@ -336,7 +344,9 @@ def process_frontdesk_execution(
             if not _is_missing(extracted.get(key)):
                 continue
             extracted[key] = value
-    rag_backfill = _rag_backfill_fields(store=store, execution=execution, transcript=transcript, extracted=extracted)
+    rag_backfill = _rag_backfill_fields(
+        store=store, execution=execution, transcript=transcript, extracted=extracted
+    )
     if rag_backfill.get("used"):
         extracted.update(rag_backfill.get("filled_values") or {})
     extracted["rag_backfill"] = {k: v for k, v in rag_backfill.items() if k != "filled_values"}
@@ -357,7 +367,9 @@ def process_frontdesk_execution(
             "needs_clinical_followup": health.needs_clinical_followup,
         }
     )
-    policy = wired.evaluate_frontdesk_policy(intent=extracted.get("intent"), risk_level=extracted.get("risk_level"))
+    policy = wired.evaluate_frontdesk_policy(
+        intent=extracted.get("intent"), risk_level=extracted.get("risk_level")
+    )
     extracted.update(
         {
             "policy_allow_auto_booking": policy.allow_auto_booking,
@@ -367,7 +379,9 @@ def process_frontdesk_execution(
             "policy_reason": policy.reason,
         }
     )
-    doctor_assignment = wired.assign_doctor(reason=extracted.get("reason"), intent=extracted.get("intent"))
+    doctor_assignment = wired.assign_doctor(
+        reason=extracted.get("reason"), intent=extracted.get("intent")
+    )
     extracted.update(
         {
             "assigned_doctor_id": doctor_assignment.doctor_id,
@@ -378,10 +392,14 @@ def process_frontdesk_execution(
     )
     if extracted.get("customer_name"):
         extracted["customer_name"] = _clean_person_name(str(extracted.get("customer_name")))
-    internal_ops_summary = _compose_internal_ops_summary(extracted=extracted, transcript=transcript, source=source)
+    internal_ops_summary = _compose_internal_ops_summary(
+        extracted=extracted, transcript=transcript, source=source
+    )
     if internal_ops_summary:
         extracted["internal_ops_summary"] = internal_ops_summary
-    patient_facing_summary = _compose_patient_facing_summary(extracted=extracted, transcript=transcript)
+    patient_facing_summary = _compose_patient_facing_summary(
+        extracted=extracted, transcript=transcript
+    )
     if patient_facing_summary:
         extracted["patient_facing_summary"] = patient_facing_summary
 
@@ -406,7 +424,11 @@ def process_frontdesk_execution(
     # Guardrail: transcript-extracted appointment IDs are often stale/echoed values.
     # For booking flows, trust existing appointment_id only when it comes from a
     # previously successful connector booking payload.
-    if should_automate and extracted.get("intent") in {"new_appointment", "reschedule"} and appointment_id:
+    if (
+        should_automate
+        and extracted.get("intent") in {"new_appointment", "reschedule"}
+        and appointment_id
+    ):
         cal_booking = extracted.get("cal_booking") or {}
         trusted_existing_id = bool(
             isinstance(cal_booking, dict)
@@ -419,7 +441,9 @@ def process_frontdesk_execution(
 
     if should_automate and extracted.get("intent") in {"new_appointment", "reschedule"}:
         slot_check = connector.check_slots(
-            preferred_date_or_window=str(extracted.get("preferred_date_or_window") or slot_start or ""),
+            preferred_date_or_window=str(
+                extracted.get("preferred_date_or_window") or slot_start or ""
+            ),
             execution_id=ex_key,
         )
         slot_check_result = {
@@ -459,7 +483,9 @@ def process_frontdesk_execution(
                 doctor_specialty=extracted.get("assigned_doctor_specialty"),
                 visit_type=extracted.get("visit_type"),
                 summary=extracted.get("internal_ops_summary") or extracted.get("summary"),
-                preferred_date_or_window=str(extracted.get("preferred_date_or_window") or slot_start or ""),
+                preferred_date_or_window=str(
+                    extracted.get("preferred_date_or_window") or slot_start or ""
+                ),
                 slot_start_iso=slot_candidate or slot_start,
                 execution_id=ex_key,
             )
@@ -486,7 +512,11 @@ def process_frontdesk_execution(
                 appointment_id=str(appointment_id),
                 slot_start=str(slot_start),
                 reason=str(extracted.get("reason") or ""),
-                summary=str(extracted.get("patient_facing_summary") or extracted.get("summary") or transcript[:300]),
+                summary=str(
+                    extracted.get("patient_facing_summary")
+                    or extracted.get("summary")
+                    or transcript[:300]
+                ),
                 call_duration_sec=execution.get("conversation_time"),
                 doctor_name=str(extracted.get("assigned_doctor_name") or ""),
                 doctor_specialty=str(extracted.get("assigned_doctor_specialty") or ""),
@@ -494,7 +524,12 @@ def process_frontdesk_execution(
             )
         except Exception as e:
             email_result = {"ok": False, "error": str(e)}
-    elif should_automate and extracted.get("customer_email") and slot_start and cal_result is not None:
+    elif (
+        should_automate
+        and extracted.get("customer_email")
+        and slot_start
+        and cal_result is not None
+    ):
         if cal_result.get("ok") is False:
             email_result = {
                 "ok": False,

@@ -50,7 +50,9 @@ def _load_policy() -> dict:
     return _default_policy()
 
 
-def evaluate_frontdesk_policy(*, intent: str | None, risk_level: str | None) -> FrontdeskPolicyDecision:
+def evaluate_frontdesk_policy(
+    *, intent: str | None, risk_level: str | None
+) -> FrontdeskPolicyDecision:
     policy = _load_policy()
     risk = str(risk_level or "low").strip().lower()
     intent_key = str(intent or "other").strip().lower()
@@ -68,7 +70,9 @@ def evaluate_frontdesk_policy(*, intent: str | None, risk_level: str | None) -> 
 
     escalation_required = risk in escalation_required_levels
     queues = policy.get("queues") or {}
-    triage_queue = queues.get("escalation") if escalation_required else queues.get("default", "ops_frontdesk")
+    triage_queue = (
+        queues.get("escalation") if escalation_required else queues.get("default", "ops_frontdesk")
+    )
     sla_hours = int(intent_rule.get("sla_hours", 24))
 
     reason = "policy_default"

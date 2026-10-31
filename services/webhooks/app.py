@@ -1,11 +1,11 @@
 from __future__ import annotations
+
 from typing import Any
 
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 
 from agentcare.usecases import process_agentcare_execution, resolve_execution_workflow
-
 
 app = FastAPI(title="AgentCare Webhooks", version="0.1.0")
 
@@ -64,4 +64,3 @@ def on_bolna_execution(payload: BolnaExecutionPayload) -> dict[str, Any]:
         if workflow == "wellness_checkin"
         else None,
     }
-

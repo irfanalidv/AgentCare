@@ -13,4 +13,3 @@ __all__ = [
     "get_customer_store",
     "init_postgres_schema",
 ]
-

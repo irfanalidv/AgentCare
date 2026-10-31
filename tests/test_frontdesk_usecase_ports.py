@@ -28,10 +28,24 @@ class _Store:
 
 class _Connector:
     def check_slots(self, **kwargs: Any):
-        return type("SlotCheck", (), {"ok": True, "chosen_start_iso": None, "slots_preview": [], "error": None, "skipped": True})()
+        return type(
+            "SlotCheck",
+            (),
+            {
+                "ok": True,
+                "chosen_start_iso": None,
+                "slots_preview": [],
+                "error": None,
+                "skipped": True,
+            },
+        )()
 
     def book_slot(self, **kwargs: Any):
-        return type("Booking", (), {"ok": False, "booking_id": None, "start_iso": None, "error": None, "skipped": True})()
+        return type(
+            "Booking",
+            (),
+            {"ok": False, "booking_id": None, "start_iso": None, "error": None, "skipped": True},
+        )()
 
 
 @dataclass

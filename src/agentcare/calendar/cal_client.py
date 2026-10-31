@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-import re
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -107,7 +107,9 @@ def parse_preferred_slot(preferred: str | None, *, timezone_name: str) -> str | 
     return dt.isoformat()
 
 
-def _day_window_from_preferred(preferred_date_or_window: str | None, timezone_name: str) -> tuple[str, str] | None:
+def _day_window_from_preferred(
+    preferred_date_or_window: str | None, timezone_name: str
+) -> tuple[str, str] | None:
     parsed = parse_preferred_slot(preferred_date_or_window, timezone_name=timezone_name)
     if not parsed:
         return None
@@ -228,7 +230,9 @@ def _resolve_event_type_id() -> tuple[int | None, str]:
     return None, "missing_or_invalid"
 
 
-def _choose_slot(preferred_date_or_window: str | None, slots: list[str], timezone_name: str) -> str | None:
+def _choose_slot(
+    preferred_date_or_window: str | None, slots: list[str], timezone_name: str
+) -> str | None:
     if not slots:
         return None
     preferred_iso = parse_preferred_slot(preferred_date_or_window, timezone_name=timezone_name)
@@ -249,7 +253,7 @@ def _choose_slot(preferred_date_or_window: str | None, slots: list[str], timezon
         return slots[0]
     parsed_slots.sort(key=lambda x: x[0])
     future = [x for x in parsed_slots if x[0] >= pref_dt]
-    return (future[0][1] if future else parsed_slots[0][1])
+    return future[0][1] if future else parsed_slots[0][1]
 
 
 def fetch_cal_slots(
@@ -261,15 +265,24 @@ def fetch_cal_slots(
     Check available Cal.com slots (best effort) before booking.
     """
     if not settings.cal_api_key:
-        return CalSlotCheckAttempt(ok=False, slots=[], skipped=True, error="CAL_API_KEY not configured")
+        return CalSlotCheckAttempt(
+            ok=False, slots=[], skipped=True, error="CAL_API_KEY not configured"
+        )
     event_type_id, event_id_source = _resolve_event_type_id()
     if not event_type_id:
-        return CalSlotCheckAttempt(ok=False, slots=[], skipped=True, error="CAL_EVENT_TYPE_ID missing/invalid and discovery failed")
+        return CalSlotCheckAttempt(
+            ok=False,
+            slots=[],
+            skipped=True,
+            error="CAL_EVENT_TYPE_ID missing/invalid and discovery failed",
+        )
 
     timezone_name = getattr(settings, "cal_timezone", "Asia/Kolkata")
     window = _day_window_from_preferred(preferred_date_or_window, timezone_name)
     if not window:
-        return CalSlotCheckAttempt(ok=False, slots=[], skipped=True, error="could not parse preferred day/window")
+        return CalSlotCheckAttempt(
+            ok=False, slots=[], skipped=True, error="could not parse preferred day/window"
+        )
     start_iso, end_iso = window
     start_dt = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
     end_dt = datetime.fromisoformat(end_iso.replace("Z", "+00:00"))
@@ -280,7 +293,12 @@ def fetch_cal_slots(
         (
             "GET",
             "https://api.cal.com/v2/slots",
-            {"eventTypeId": event_type_id, "start": start_utc, "end": end_utc, "timeZone": timezone_name},
+            {
+                "eventTypeId": event_type_id,
+                "start": start_utc,
+                "end": end_utc,
+                "timeZone": timezone_name,
+            },
             _build_cal_headers(api_version="2024-09-04"),
         ),
         (
@@ -370,13 +388,17 @@ def create_cal_booking(
 
     event_type_id, event_id_source = _resolve_event_type_id()
     if not event_type_id:
-        return CalBookingAttempt(ok=False, skipped=True, error="CAL_EVENT_TYPE_ID missing/invalid and discovery failed")
+        return CalBookingAttempt(
+            ok=False, skipped=True, error="CAL_EVENT_TYPE_ID missing/invalid and discovery failed"
+        )
 
     if not patient_email:
         return CalBookingAttempt(ok=False, skipped=True, error="patient_email missing")
 
     timezone_name = getattr(settings, "cal_timezone", "Asia/Kolkata")
-    start_iso = slot_start_iso or parse_preferred_slot(preferred_date_or_window, timezone_name=timezone_name)
+    start_iso = slot_start_iso or parse_preferred_slot(
+        preferred_date_or_window, timezone_name=timezone_name
+    )
     if not start_iso:
         return CalBookingAttempt(ok=False, skipped=True, error="could not parse preferred slot")
 
@@ -467,12 +489,18 @@ def create_cal_booking(
                 details = data if isinstance(data, dict) else {"raw": data}
                 details["event_type_id"] = event_type_id
                 details["event_type_id_source"] = event_id_source
-                return CalBookingAttempt(ok=True, booking_id=booking_id, start_iso=start_iso, details=details)
+                return CalBookingAttempt(
+                    ok=True, booking_id=booking_id, start_iso=start_iso, details=details
+                )
         return CalBookingAttempt(
             ok=False,
             start_iso=start_iso,
             error="cal booking failed",
-            details={"errors": errors, "event_type_id": event_type_id, "event_type_id_source": event_id_source},
+            details={
+                "errors": errors,
+                "event_type_id": event_type_id,
+                "event_type_id_source": event_id_source,
+            },
         )
     except Exception as e:
         return CalBookingAttempt(ok=False, start_iso=start_iso, error=str(e))

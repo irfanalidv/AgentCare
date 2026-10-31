@@ -5,13 +5,21 @@ from typing import Any, Literal
 from agentcare.usecases.frontdesk import FrontdeskProcessingResult, process_frontdesk_execution
 from agentcare.usecases.wellness import WellnessExecutionResult, process_wellness_execution
 
-ExecutionWorkflow = Literal["frontdesk_booking", "care_navigation", "followup_outreach", "wellness_checkin"]
+ExecutionWorkflow = Literal[
+    "frontdesk_booking", "care_navigation", "followup_outreach", "wellness_checkin"
+]
 ExecutionProcessingResult = FrontdeskProcessingResult | WellnessExecutionResult
 
 
-def resolve_execution_workflow(execution: dict[str, Any], *, default: str = "frontdesk_booking") -> str:
+def resolve_execution_workflow(
+    execution: dict[str, Any], *, default: str = "frontdesk_booking"
+) -> str:
     metadata = execution.get("metadata") if isinstance(execution.get("metadata"), dict) else {}
-    context = execution.get("context_details") if isinstance(execution.get("context_details"), dict) else {}
+    context = (
+        execution.get("context_details")
+        if isinstance(execution.get("context_details"), dict)
+        else {}
+    )
     candidates = [
         execution.get("workflow"),
         execution.get("workflow_name"),

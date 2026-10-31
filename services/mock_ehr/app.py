@@ -6,7 +6,6 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-
 app = FastAPI(title="AgentCare Mock EHR", version="0.1.0")
 
 
@@ -26,8 +25,12 @@ class Appointment(BaseModel):
 
 
 PATIENTS: dict[str, Patient] = {
-    "p_001": Patient(patient_id="p_001", name="Ava Patel", phone_e164="+15550000001", dob="1992-10-12"),
-    "p_002": Patient(patient_id="p_002", name="Noah Kim", phone_e164="+15550000002", dob="1985-03-28"),
+    "p_001": Patient(
+        patient_id="p_001", name="Ava Patel", phone_e164="+15550000001", dob="1992-10-12"
+    ),
+    "p_002": Patient(
+        patient_id="p_002", name="Noah Kim", phone_e164="+15550000002", dob="1985-03-28"
+    ),
 }
 
 APPOINTMENTS: dict[str, Appointment] = {}
@@ -39,7 +42,9 @@ def _utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
-def _generate_slots(day: date, *, start_hour: int = 9, end_hour: int = 17, step_minutes: int = 30) -> list[datetime]:
+def _generate_slots(
+    day: date, *, start_hour: int = 9, end_hour: int = 17, step_minutes: int = 30
+) -> list[datetime]:
     slots: list[datetime] = []
     start = datetime.combine(day, time(hour=start_hour), tzinfo=timezone.utc)
     end = datetime.combine(day, time(hour=end_hour), tzinfo=timezone.utc)
@@ -81,7 +86,11 @@ def tool_get_available_slots(day: date) -> dict[str, Any]:
     slots = _generate_slots(day)
     booked = {a.slot_start for a in APPOINTMENTS.values() if a.status == "booked"}
     available = [s for s in slots if s not in booked]
-    return {"day": str(day), "timezone": "UTC", "available_slots": [s.isoformat() for s in available]}
+    return {
+        "day": str(day),
+        "timezone": "UTC",
+        "available_slots": [s.isoformat() for s in available],
+    }
 
 
 @app.post("/tools/get_available_slots")
@@ -125,7 +134,12 @@ def tool_book_appointment(req: BookAppointmentRequest) -> dict[str, Any]:
             raise HTTPException(status_code=409, detail="slot already booked")
 
     appt_id = f"appt_{len(APPOINTMENTS) + 1:05d}"
-    appt = Appointment(appointment_id=appt_id, patient_id=patient.patient_id, slot_start=slot_start, reason=req.reason)
+    appt = Appointment(
+        appointment_id=appt_id,
+        patient_id=patient.patient_id,
+        slot_start=slot_start,
+        reason=req.reason,
+    )
     APPOINTMENTS[appt_id] = appt
 
     return {
@@ -135,4 +149,3 @@ def tool_book_appointment(req: BookAppointmentRequest) -> dict[str, Any]:
         "slot_start": slot_start.isoformat(),
         "reason": req.reason,
     }
-

@@ -7,7 +7,9 @@ from agentcare.connectors.appointments import BookingResult, SlotCheckResult
 
 @runtime_checkable
 class AppointmentConnectorPort(Protocol):
-    def check_slots(self, *, preferred_date_or_window: str | None, execution_id: str | None) -> SlotCheckResult: ...
+    def check_slots(
+        self, *, preferred_date_or_window: str | None, execution_id: str | None
+    ) -> SlotCheckResult: ...
 
     def book_slot(
         self,

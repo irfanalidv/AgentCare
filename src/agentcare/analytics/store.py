@@ -212,7 +212,9 @@ def get_call_lifecycle(execution_id: str) -> dict[str, Any]:
             rows = []
     except Exception:
         rows = []
-    events = [r for r in rows if isinstance(r, dict) and str(r.get("execution_id") or "") == execution_id]
+    events = [
+        r for r in rows if isinstance(r, dict) and str(r.get("execution_id") or "") == execution_id
+    ]
     events.sort(key=lambda x: str(x.get("ts") or ""))
     current_state = str(events[-1].get("state") or "unknown") if events else "unknown"
     return {"execution_id": execution_id, "events": events, "current_state": current_state}
@@ -349,4 +351,3 @@ def persist_call_event(
     except Exception as e:
         _append_json_fallback(event)
         return {"stored": "json_fallback", "db_error": str(e)}
-

@@ -28,4 +28,3 @@ class Orchestrator:
             "agent_id": status.agent_id,
             "status": status.status,
         }
-

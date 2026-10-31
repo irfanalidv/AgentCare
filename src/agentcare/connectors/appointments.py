@@ -30,7 +30,9 @@ class BookingResult:
 
 
 class AppointmentConnector(Protocol):
-    def check_slots(self, *, preferred_date_or_window: str | None, execution_id: str | None) -> SlotCheckResult: ...
+    def check_slots(
+        self, *, preferred_date_or_window: str | None, execution_id: str | None
+    ) -> SlotCheckResult: ...
 
     def book_slot(
         self,
@@ -50,8 +52,12 @@ class AppointmentConnector(Protocol):
 
 
 class CalAppointmentConnector:
-    def check_slots(self, *, preferred_date_or_window: str | None, execution_id: str | None) -> SlotCheckResult:
-        r = fetch_cal_slots(preferred_date_or_window=preferred_date_or_window, execution_id=execution_id)
+    def check_slots(
+        self, *, preferred_date_or_window: str | None, execution_id: str | None
+    ) -> SlotCheckResult:
+        r = fetch_cal_slots(
+            preferred_date_or_window=preferred_date_or_window, execution_id=execution_id
+        )
         return SlotCheckResult(
             ok=r.ok,
             chosen_start_iso=r.chosen_start_iso,
@@ -98,8 +104,12 @@ class CalAppointmentConnector:
 
 
 class MockAppointmentConnector:
-    def check_slots(self, *, preferred_date_or_window: str | None, execution_id: str | None) -> SlotCheckResult:
-        return SlotCheckResult(ok=True, chosen_start_iso=None, slots_preview=[], skipped=True, error="mock_connector")
+    def check_slots(
+        self, *, preferred_date_or_window: str | None, execution_id: str | None
+    ) -> SlotCheckResult:
+        return SlotCheckResult(
+            ok=True, chosen_start_iso=None, slots_preview=[], skipped=True, error="mock_connector"
+        )
 
     def book_slot(
         self,
@@ -116,7 +126,13 @@ class MockAppointmentConnector:
         slot_start_iso: str | None,
         execution_id: str | None,
     ) -> BookingResult:
-        return BookingResult(ok=False, booking_id=None, start_iso=slot_start_iso, skipped=True, error="mock_connector")
+        return BookingResult(
+            ok=False,
+            booking_id=None,
+            start_iso=slot_start_iso,
+            skipped=True,
+            error="mock_connector",
+        )
 
 
 class FHIRAppointmentConnector:
@@ -190,7 +206,9 @@ class FHIRAppointmentConnector:
         except Exception as e:
             return None, [], None, f"fhir_slot_error:{e}"
 
-    def check_slots(self, *, preferred_date_or_window: str | None, execution_id: str | None) -> SlotCheckResult:
+    def check_slots(
+        self, *, preferred_date_or_window: str | None, execution_id: str | None
+    ) -> SlotCheckResult:
         chosen, preview, _slot_id, error = self._find_best_slot(
             preferred_date_or_window=preferred_date_or_window,
             execution_id=execution_id,
@@ -219,7 +237,13 @@ class FHIRAppointmentConnector:
         execution_id: str | None,
     ) -> BookingResult:
         if not self.base_url:
-            return BookingResult(ok=False, booking_id=None, start_iso=slot_start_iso, skipped=True, error="fhir_base_url_missing")
+            return BookingResult(
+                ok=False,
+                booking_id=None,
+                start_iso=slot_start_iso,
+                skipped=True,
+                error="fhir_base_url_missing",
+            )
 
         chosen_start = _normalize_start_iso(slot_start_iso or "")
         chosen_slot_id: str | None = None
@@ -257,13 +281,18 @@ class FHIRAppointmentConnector:
                     "status": "accepted",
                     "actor": {
                         "display": patient_name or "Patient",
-                        "identifier": {"system": "urn:agentcare:phone", "value": patient_phone or ""},
+                        "identifier": {
+                            "system": "urn:agentcare:phone",
+                            "value": patient_phone or "",
+                        },
                     },
                 }
             ],
         }
         if patient_email:
-            appointment_payload["participant"][0]["actor"]["telecom"] = [{"system": "email", "value": patient_email}]
+            appointment_payload["participant"][0]["actor"]["telecom"] = [
+                {"system": "email", "value": patient_email}
+            ]
         if chosen_slot_id:
             appointment_payload["slot"] = [{"reference": f"Slot/{chosen_slot_id}"}]
         if self.organization_id:
@@ -294,7 +323,9 @@ class FHIRAppointmentConnector:
                     skipped=False,
                     error="fhir_appointment_missing_id",
                 )
-            return BookingResult(ok=True, booking_id=booking_id, start_iso=chosen_start, skipped=False, error=None)
+            return BookingResult(
+                ok=True, booking_id=booking_id, start_iso=chosen_start, skipped=False, error=None
+            )
         except Exception as e:
             return BookingResult(
                 ok=False,

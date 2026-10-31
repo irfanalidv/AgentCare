@@ -23,7 +23,10 @@ def _rag_vector_lookup(rows: list[dict[str, Any]], query: str) -> dict[str, Any]
     We avoid the package's LLM-based fallback chain because it is brittle across HF client versions.
     """
     try:
-        from langchain.docstore.document import Document  # type: ignore
+        try:  # LangChain >= 0.1 / 1.x
+            from langchain_core.documents import Document
+        except ImportError:  # very old LangChain
+            from langchain.docstore.document import Document  # type: ignore
         from ragfallback.utils import create_faiss_vector_store, create_open_source_embeddings  # type: ignore
 
         if not rows:
@@ -81,8 +84,8 @@ def _lexical_lookup(rows: list[dict[str, Any]], query: str) -> dict[str, Any]:
     scored: list[tuple[int, dict[str, Any]]] = []
     for r in rows:
         text = (
-            f"{r.get('name','')} {r.get('email','')} {r.get('phone_e164','')} "
-            f"{r.get('last_summary','')} {' '.join(r.get('notes', []))}"
+            f"{r.get('name', '')} {r.get('email', '')} {r.get('phone_e164', '')} "
+            f"{r.get('last_summary', '')} {' '.join(r.get('notes', []))}"
         ).lower()
         score = sum(1 for tok in q.split() if tok and tok in text)
         scored.append((score, r))
@@ -112,6 +115,7 @@ def _can_connect_postgres(database_url: str) -> bool:
     except Exception as e:
         logger.warning("Postgres reachability check failed, falling back to JSON store: %s", e)
         return False
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -161,7 +165,9 @@ class CustomerMemoryStore:
     def get_all(self) -> list[CustomerProfile]:
         return [CustomerProfile(**r) for r in self._read()]
 
-    def find_exact(self, *, email: str | None = None, phone_e164: str | None = None) -> CustomerProfile | None:
+    def find_exact(
+        self, *, email: str | None = None, phone_e164: str | None = None
+    ) -> CustomerProfile | None:
         rows = self._read()
         for r in rows:
             if email and r.get("email") and r.get("email").lower() == email.lower():
@@ -248,7 +254,9 @@ class PostgresCustomerMemoryStore:
 
     def _conn(self):
         if psycopg is None:
-            raise RuntimeError("Postgres extras not installed. Install with: pip install 'agentcare[postgres]'")
+            raise RuntimeError(
+                "Postgres extras not installed. Install with: pip install 'agentcare[postgres]'"
+            )
         return psycopg.connect(self.database_url)
 
     def get_all(self) -> list[CustomerProfile]:
@@ -283,7 +291,9 @@ class PostgresCustomerMemoryStore:
             )
         return out
 
-    def find_exact(self, *, email: str | None = None, phone_e164: str | None = None) -> CustomerProfile | None:
+    def find_exact(
+        self, *, email: str | None = None, phone_e164: str | None = None
+    ) -> CustomerProfile | None:
         if not email and not phone_e164:
             return None
         with self._conn() as conn:
@@ -369,7 +379,17 @@ class PostgresCustomerMemoryStore:
                             last_summary, last_status, last_appointment_id, last_slot_start, notes
                         ) VALUES (%s,%s,%s,%s,now(),now(),1,%s,%s,%s,%s,%s)
                         """,
-                        (cid, name, email, phone_e164, summary, status, appointment_id, slot_start, notes),
+                        (
+                            cid,
+                            name,
+                            email,
+                            phone_e164,
+                            summary,
+                            status,
+                            appointment_id,
+                            slot_start,
+                            notes,
+                        ),
                     )
                     conn.commit()
                     return CustomerProfile(
@@ -441,7 +461,10 @@ class PostgresCustomerMemoryStore:
     def is_execution_processed(self, execution_id: str) -> bool:
         with self._conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT 1 FROM processed_executions WHERE execution_id = %s LIMIT 1", (execution_id,))
+                cur.execute(
+                    "SELECT 1 FROM processed_executions WHERE execution_id = %s LIMIT 1",
+                    (execution_id,),
+                )
                 return cur.fetchone() is not None
 
     def mark_execution_processed(self, execution_id: str) -> None:
@@ -456,7 +479,9 @@ class PostgresCustomerMemoryStore:
 
 def init_postgres_schema(database_url: str) -> None:
     if psycopg is None:
-        raise RuntimeError("Postgres extras not installed. Install with: pip install 'agentcare[postgres]'")
+        raise RuntimeError(
+            "Postgres extras not installed. Install with: pip install 'agentcare[postgres]'"
+        )
     with psycopg.connect(database_url) as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -554,12 +579,17 @@ def init_postgres_schema(database_url: str) -> None:
 def get_customer_store():
     backend = settings.customer_store_backend.strip().lower()
     if backend in {"postgres", "auto"}:
-        if not settings.database_url or "[YOUR-" in settings.database_url or "YOUR-PASSWORD" in settings.database_url:
+        if (
+            not settings.database_url
+            or "[YOUR-" in settings.database_url
+            or "YOUR-PASSWORD" in settings.database_url
+        ):
             # Gracefully fall back during local setup when placeholder env values are present.
-            logger.warning("Postgres backend selected but DATABASE_URL is missing/placeholder; falling back to JSON store.")
+            logger.warning(
+                "Postgres backend selected but DATABASE_URL is missing/placeholder; falling back to JSON store."
+            )
             return CustomerMemoryStore(Path(settings.customer_store_path))
         if _can_connect_postgres(settings.database_url):
             return PostgresCustomerMemoryStore(_database_url_with_ssl(settings.database_url))
         return CustomerMemoryStore(Path(settings.customer_store_path))
     return CustomerMemoryStore(Path(settings.customer_store_path))
-

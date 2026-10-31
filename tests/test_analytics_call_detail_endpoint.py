@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from services.analytics.app import app
-import agentcare.analytics.dashboard_queries as dashboard_queries
+import agentcare.analytics.dashboard_queries as dashboard_queries  # noqa: E402
+from services.analytics.app import app  # noqa: E402
 
 
 def test_analytics_call_detail_fallback_includes_summaries(tmp_path: Path, monkeypatch) -> None:
@@ -45,7 +45,9 @@ def test_analytics_call_detail_fallback_includes_summaries(tmp_path: Path, monke
     assert "internal_ops_summary" in payload["row"]
 
 
-def test_booking_failed_projection_does_not_confirm_transcript_id(tmp_path: Path, monkeypatch) -> None:
+def test_booking_failed_projection_does_not_confirm_transcript_id(
+    tmp_path: Path, monkeypatch
+) -> None:
     artifacts = tmp_path / "artifacts"
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / "customers.json").write_text(

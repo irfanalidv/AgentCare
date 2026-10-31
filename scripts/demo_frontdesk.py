@@ -10,7 +10,6 @@ from agentcare.llm import MistralLLM
 from agentcare.settings import settings
 from agentcare.templates import build_frontdesk_agent_spec
 
-
 TERMINAL_STATUSES = {
     "completed",
     "call-disconnected",
@@ -38,7 +37,9 @@ def main() -> None:
     )
 
     with BolnaClient(api_key=settings.bolna_api_key, base_url=settings.bolna_base_url) as bolna:
-        agent = bolna.create_agent_v2(agent_config=spec["agent_config"], agent_prompts=spec["agent_prompts"])
+        agent = bolna.create_agent_v2(
+            agent_config=spec["agent_config"], agent_prompts=spec["agent_prompts"]
+        )
         print(f"created agent_id={agent.agent_id}")
 
         # NOTE: Replace with a real E.164 number you can legally call.
@@ -80,4 +81,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

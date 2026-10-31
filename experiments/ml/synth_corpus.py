@@ -23,7 +23,6 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
-
 # ----- Utterance pools indexed by MBI dimension and severity -----
 
 EE_LOW = [
@@ -120,9 +119,7 @@ def _pick(rng: random.Random, items: list[str], k: int) -> list[str]:
     return rng.sample(items, k)
 
 
-def _utterances_for_dim(
-    rng: random.Random, score: float, dim: str
-) -> list[str]:
+def _utterances_for_dim(rng: random.Random, score: float, dim: str) -> list[str]:
     """Score is 0-10 latent. Map to severity tier and sample utterances."""
     pools = {
         "ee": (EE_LOW, EE_MED, EE_HIGH),
@@ -155,7 +152,9 @@ def synthesise_transcript(
 ) -> str:
     """Build one session transcript from latent dimension scores."""
     parts: list[str] = []
-    parts.append(f"Agent: Hi {employee_name}, this is your weekly wellness check-in. How has the week been?")
+    parts.append(
+        f"Agent: Hi {employee_name}, this is your weekly wellness check-in. How has the week been?"
+    )
     parts.append(f"{employee_name}: " + rng.choice(OPENERS))
 
     user_lines = (
@@ -193,6 +192,7 @@ def synthesise_transcript(
 
 # ----- Persona trajectories -----
 
+
 @dataclass
 class Persona:
     employee_id: str
@@ -204,7 +204,9 @@ class Persona:
     primary_stressor: str | None
 
 
-def _trajectory(archetype: str, n: int, rng: random.Random) -> tuple[list[float], list[float], list[float], list[bool]]:
+def _trajectory(
+    archetype: str, n: int, rng: random.Random
+) -> tuple[list[float], list[float], list[float], list[bool]]:
     """Return latent (ee, dp, pa, crisis_flag) trajectories of length n."""
     ee = []
     dp = []
@@ -231,7 +233,7 @@ def _trajectory(archetype: str, n: int, rng: random.Random) -> tuple[list[float]
             pa.append(max(0.0, min(10.0, pa_start + (pa_end - pa_start) * t + rng.gauss(0, 0.5))))
 
     elif archetype == "acute_burnout":
-        for i in range(n):
+        for _ in range(n):
             ee.append(max(0.0, min(10.0, rng.gauss(8.0, 0.8))))
             dp.append(max(0.0, min(10.0, rng.gauss(7.0, 0.9))))
             pa.append(max(0.0, min(10.0, rng.gauss(6.5, 0.9))))
@@ -263,8 +265,22 @@ def _label_for_persona(ee: list[float], dp: list[float], horizon_start: int) -> 
 # ----- Public corpus generation -----
 
 NAMES = [
-    "Sam", "Priya", "Alex", "Maya", "Jordan", "Riya", "Chris", "Aisha",
-    "Devon", "Tara", "Noor", "Kiran", "Leo", "Zara", "Arjun", "Mira",
+    "Sam",
+    "Priya",
+    "Alex",
+    "Maya",
+    "Jordan",
+    "Riya",
+    "Chris",
+    "Aisha",
+    "Devon",
+    "Tara",
+    "Noor",
+    "Kiran",
+    "Leo",
+    "Zara",
+    "Arjun",
+    "Mira",
 ]
 ROLES = ["engineer", "designer", "analyst", "manager", "researcher", "PM"]
 
@@ -296,22 +312,29 @@ def generate_corpus(
     eid = 0
     for arch in archetypes:
         for _ in range(n_per_archetype):
-            personas.append(Persona(
-                employee_id=f"emp_{eid:04d}",
-                archetype=arch,
-                name=master_rng.choice(NAMES),
-                role=master_rng.choice(ROLES),
-                n_sessions=n_sessions,
-                seed=master_rng.randint(1, 10**9),
-                primary_stressor=(
-                    master_rng.choice(list(STRESSORS.keys()))
-                    if arch != "healthy_stable" or master_rng.random() < 0.2
-                    else None
-                ),
-            ))
+            personas.append(
+                Persona(
+                    employee_id=f"emp_{eid:04d}",
+                    archetype=arch,
+                    name=master_rng.choice(NAMES),
+                    role=master_rng.choice(ROLES),
+                    n_sessions=n_sessions,
+                    seed=master_rng.randint(1, 10**9),
+                    primary_stressor=(
+                        master_rng.choice(list(STRESSORS.keys()))
+                        if arch != "healthy_stable" or master_rng.random() < 0.2
+                        else None
+                    ),
+                )
+            )
             eid += 1
 
-    counts = {"healthy_stable": 0, "gradually_deteriorating": 0, "acute_burnout": 0, "positive_labels": 0}
+    counts = {
+        "healthy_stable": 0,
+        "gradually_deteriorating": 0,
+        "acute_burnout": 0,
+        "positive_labels": 0,
+    }
 
     with out_path.open("w", encoding="utf-8") as fh:
         for p in personas:
@@ -324,7 +347,9 @@ def generate_corpus(
             for s in range(p.n_sessions):
                 transcript = synthesise_transcript(
                     rng,
-                    ee=ee_traj[s], dp=dp_traj[s], pa=pa_traj[s],
+                    ee=ee_traj[s],
+                    dp=dp_traj[s],
+                    pa=pa_traj[s],
                     stressor=p.primary_stressor if s % 3 == 0 else None,
                     crisis=crisis_flags[s],
                     employee_name=p.name,

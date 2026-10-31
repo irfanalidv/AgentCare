@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "agentcare"
+abstract: "Framework for healthcare voice-AI agents: front-desk booking, follow-ups, wellness check-ins, transcript extraction, and analytics."
+authors:
+  - family-names: Ali
+    given-names: Irfan
+version: "0.3.0"
+date-released: "2026-10-31"
+license: MIT
+repository-code: "https://github.com/irfanalidv/AgentCare"
+url: "https://pypi.org/project/agentcare/"

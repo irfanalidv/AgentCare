@@ -24,26 +24,21 @@ from pathlib import Path
 
 from agentcare.analysis.burnout import analyze_burnout_context
 
-
 # Each tuple: (transcript, expected_band, expected_high_acuity)
 ADVERSARIAL_CASES: list[tuple[str, str, bool]] = [
     # --- Empty / short ---
     ("", "low", False),
     ("Hello.", "low", False),
     ("Yes.", "low", False),
-
     # --- Off-topic ---
     ("I made pasta for dinner. The garden is doing well. We watched a movie.", "low", False),
     ("My team won the cricket match yesterday. It was great.", "low", False),
-
     # --- Sarcasm (treat as ambiguous; should not over-flag) ---
     ("Oh sure, I am totally fine. Everything is wonderful.", "low", False),
     ("Yeah I love working sixty hour weeks, it's my hobby.", "low", False),
-
     # --- Mixed signals ---
     ("I am tired but the team is great and I shipped two things this week.", "low", False),
     ("Workload is heavy but I am sleeping fine and feel productive.", "low", False),
-
     # --- Genuine high-burnout (should flag) ---
     (
         "I am completely exhausted. I cannot sleep. I do not care anymore. "
@@ -51,7 +46,6 @@ ADVERSARIAL_CASES: list[tuple[str, str, bool]] = [
         "high",
         False,
     ),
-
     # --- Embedded crisis ---
     (
         "Things are okay at work I guess. Honestly some days I do not want to wake up.",
@@ -73,17 +67,19 @@ def run(output_dir: str) -> dict:
     rows = []
     for transcript, expected_band, expected_acuity in ADVERSARIAL_CASES:
         a = analyze_burnout_context(transcript=transcript)
-        rows.append({
-            "transcript": transcript,
-            "expected_band": expected_band,
-            "pred_band": a.risk_band,
-            "expected_acuity": expected_acuity,
-            "pred_acuity": a.high_acuity_flag,
-            "composite": a.composite_score,
-            "ee_hits": a.ee_hits,
-            "dp_hits": a.dp_hits,
-            "pa_hits": a.pa_hits,
-        })
+        rows.append(
+            {
+                "transcript": transcript,
+                "expected_band": expected_band,
+                "pred_band": a.risk_band,
+                "expected_acuity": expected_acuity,
+                "pred_acuity": a.high_acuity_flag,
+                "composite": a.composite_score,
+                "ee_hits": a.ee_hits,
+                "dp_hits": a.dp_hits,
+                "pa_hits": a.pa_hits,
+            }
+        )
 
     n = len(rows)
     band_correct = sum(1 for r in rows if r["pred_band"] == r["expected_band"])

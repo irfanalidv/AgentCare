@@ -15,8 +15,8 @@ from agentcare.bolna.models import (
     Knowledgebase,
     KnowledgebaseStatus,
     MakeCallStatus,
-    VoiceExecution,
     Voice,
+    VoiceExecution,
 )
 
 
@@ -40,7 +40,7 @@ class BolnaClient:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "BolnaClient":
+    def __enter__(self) -> BolnaClient:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -70,7 +70,9 @@ class BolnaClient:
 
     # --- Agents / Calls / Executions ---
 
-    def create_agent_v2(self, *, agent_config: dict[str, Any], agent_prompts: dict[str, Any]) -> AgentCreateStatus:
+    def create_agent_v2(
+        self, *, agent_config: dict[str, Any], agent_prompts: dict[str, Any]
+    ) -> AgentCreateStatus:
         payload = {"agent_config": agent_config, "agent_prompts": agent_prompts}
         resp = self._client.post("/v2/agent", json=payload)
         data = self._handle(resp)
@@ -126,9 +128,15 @@ class BolnaClient:
         Bolna response shapes vary; normalize to list[VoiceExecution].
         """
         candidate_requests = [
-            ("/executions", {"agent_id": agent_id, "page_number": page_number, "page_size": page_size}),
+            (
+                "/executions",
+                {"agent_id": agent_id, "page_number": page_number, "page_size": page_size},
+            ),
             (f"/agent/{agent_id}/executions", {"page_number": page_number, "page_size": page_size}),
-            (f"/v2/agent/{agent_id}/executions", {"page_number": page_number, "page_size": page_size}),
+            (
+                f"/v2/agent/{agent_id}/executions",
+                {"page_number": page_number, "page_size": page_size},
+            ),
         ]
 
         data = None
@@ -167,7 +175,9 @@ class BolnaClient:
     ) -> list[VoiceExecution]:
         out: list[VoiceExecution] = []
         for page in range(1, max_pages + 1):
-            items = self.get_executions_page(agent_id=agent_id, page_number=page, page_size=page_size)
+            items = self.get_executions_page(
+                agent_id=agent_id, page_number=page, page_size=page_size
+            )
             if not items:
                 break
             out.extend(items)
@@ -251,11 +261,12 @@ class BolnaClient:
 
     # --- Custom models ---
 
-    def add_custom_llm_model(self, *, custom_model_name: str, custom_model_url: str) -> AddCustomModelResponse:
+    def add_custom_llm_model(
+        self, *, custom_model_name: str, custom_model_url: str
+    ) -> AddCustomModelResponse:
         resp = self._client.post(
             "/user/model/custom",
             json={"custom_model_name": custom_model_name, "custom_model_url": custom_model_url},
         )
         out = self._handle(resp)
         return AddCustomModelResponse.model_validate(out)
-

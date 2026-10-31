@@ -11,7 +11,11 @@ from agentcare.analytics.metrics import (
     get_overview,
     get_overview_fallback,
 )
-from agentcare.analytics.store import get_call_lifecycle, persist_call_event, persist_call_lifecycle_event
+from agentcare.analytics.store import (
+    get_call_lifecycle,
+    persist_call_event,
+    persist_call_lifecycle_event,
+)
 
 __all__ = [
     "persist_call_event",
@@ -30,4 +34,3 @@ __all__ = [
     "build_appointment_summary",
     "build_cases_queue",
 ]
-

@@ -32,14 +32,24 @@ def _gen(arch: str, n: int, rng: random.Random) -> list[float]:
         start = rng.uniform(6.0, 8.0)
         end = rng.uniform(1.5, 3.0)
         return [
-            round(max(0.0, min(10.0, start + (end - start) * (i / max(1, n - 1)) + rng.gauss(0, 0.4))), 2)
+            round(
+                max(
+                    0.0, min(10.0, start + (end - start) * (i / max(1, n - 1)) + rng.gauss(0, 0.4))
+                ),
+                2,
+            )
             for i in range(n)
         ]
     if arch == "deteriorating":
         start = rng.uniform(1.5, 3.0)
         end = rng.uniform(6.5, 8.5)
         return [
-            round(max(0.0, min(10.0, start + (end - start) * (i / max(1, n - 1)) + rng.gauss(0, 0.4))), 2)
+            round(
+                max(
+                    0.0, min(10.0, start + (end - start) * (i / max(1, n - 1)) + rng.gauss(0, 0.4))
+                ),
+                2,
+            )
             for i in range(n)
         ]
     raise ValueError(arch)
@@ -78,9 +88,12 @@ def run(output_dir: str, n_per_arch: int = 200, window_sizes: list[int] | None =
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
                 ax.text(j, i, str(cm[i, j]), ha="center", va="center")
-        ax.set_xticks(range(len(archetypes))); ax.set_xticklabels(archetypes, rotation=20)
-        ax.set_yticks(range(len(archetypes))); ax.set_yticklabels(archetypes)
-        ax.set_xlabel("Predicted"); ax.set_ylabel("Actual")
+        ax.set_xticks(range(len(archetypes)))
+        ax.set_xticklabels(archetypes, rotation=20)
+        ax.set_yticks(range(len(archetypes)))
+        ax.set_yticklabels(archetypes)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
         ax.set_title(f"Trend detection (window={w}, acc={acc:.2f})")
         fig.tight_layout()
         fig.savefig(out / f"confusion_w{w}.png", dpi=140)

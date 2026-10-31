@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from fastapi import FastAPI, Query
@@ -19,7 +20,6 @@ from agentcare.analytics import (
     get_overview_fallback,
 )
 from agentcare.settings import settings
-
 
 app = FastAPI(title="AgentCare Analytics", version="0.1.0")
 app.add_middleware(
@@ -88,7 +88,9 @@ def analytics_calls_timeseries(
     interval: str = Query(default="day"),
 ) -> dict[str, Any]:
     if not _db_ready():
-        return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
+        return {
+            "rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)
+        }
     try:
         rows = _run_with_timeout(
             get_calls_timeseries,
@@ -99,9 +101,13 @@ def analytics_calls_timeseries(
         )
         return {"rows": rows}
     except FuturesTimeoutError:
-        return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
+        return {
+            "rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)
+        }
     except Exception:
-        return {"rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)}
+        return {
+            "rows": get_calls_timeseries_fallback(from_ts=from_ts, to_ts=to_ts, interval=interval)
+        }
 
 
 @app.get("/analytics/funnel")
@@ -162,4 +168,3 @@ def analytics_call_detail(execution_id: str) -> dict[str, Any]:
         if fallback:
             return {"ok": True, "row": fallback}
         return {"ok": False, "error": "not_found", "execution_id": execution_id}
-

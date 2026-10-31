@@ -122,4 +122,3 @@ class AddCustomModelResponse(_Base):
 class DeleteKnowledgebaseResponse(_Base):
     message: str = Field(default="success")
     state: str | None = None
-

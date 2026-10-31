@@ -46,7 +46,10 @@ def _build_session_record(transcript: str, use_llm: bool) -> dict:
         engagement_level = ext.engagement_level
 
     analysis = analyze_burnout_context(
-        transcript=transcript, llm_ee=llm_ee, llm_dp=llm_dp, llm_pa=llm_pa,
+        transcript=transcript,
+        llm_ee=llm_ee,
+        llm_dp=llm_dp,
+        llm_pa=llm_pa,
     )
     return {
         "ee_score": analysis.ee_score,
@@ -68,7 +71,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     label_by_emp: dict[str, int] = {}
     horizon_start = None
 
-    with open(corpus_path, "r", encoding="utf-8") as fh:
+    with open(corpus_path, encoding="utf-8") as fh:
         for line in fh:
             r = json.loads(line)
             horizon_start = r["horizon_start"]
@@ -92,8 +95,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     X = np.array(X_rows, dtype=float)
     y = np.array(y_rows, dtype=int)
 
-    print(f"Built feature matrix: X={X.shape}, y={y.shape}, "
-          f"positive rate={y.mean():.3f}")
+    print(f"Built feature matrix: X={X.shape}, y={y.shape}, positive rate={y.mean():.3f}")
 
     metrics = train_all(X, y, eids, cfg=TrainConfig(output_dir=str(out)))
 
@@ -109,7 +111,9 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     ablation_dir = out / "ablation_no_llm_categorical"
     ablation_dir.mkdir(parents=True, exist_ok=True)
     metrics_ablated = train_all(
-        X_ablated, y, eids,
+        X_ablated,
+        y,
+        eids,
         cfg=TrainConfig(output_dir=str(ablation_dir)),
     )
 

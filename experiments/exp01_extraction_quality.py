@@ -39,7 +39,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
     out.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict] = []
-    with open(corpus_path, "r", encoding="utf-8") as fh:
+    with open(corpus_path, encoding="utf-8") as fh:
         for line in fh:
             r = json.loads(line)
             transcript = r["transcript"]
@@ -53,24 +53,30 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
 
             analysis = analyze_burnout_context(
                 transcript=transcript,
-                llm_ee=llm_ee, llm_dp=llm_dp, llm_pa=llm_pa,
+                llm_ee=llm_ee,
+                llm_dp=llm_dp,
+                llm_pa=llm_pa,
             )
 
-            rows.append({
-                "employee_id": r["employee_id"],
-                "session_index": r["session_index"],
-                "archetype": r["archetype"],
-                "true_ee": r["latent_ee"],
-                "true_dp": r["latent_dp"],
-                "true_pa": r["latent_pa"],
-                "pred_ee": analysis.ee_score,
-                "pred_dp": analysis.dp_score,
-                "pred_pa": analysis.pa_score,
-                "pred_composite": analysis.composite_score,
-                "true_band": _band(0.45 * r["latent_ee"] + 0.35 * r["latent_dp"] + 0.20 * r["latent_pa"]),
-                "pred_band": analysis.risk_band,
-                "high_acuity": analysis.high_acuity_flag,
-            })
+            rows.append(
+                {
+                    "employee_id": r["employee_id"],
+                    "session_index": r["session_index"],
+                    "archetype": r["archetype"],
+                    "true_ee": r["latent_ee"],
+                    "true_dp": r["latent_dp"],
+                    "true_pa": r["latent_pa"],
+                    "pred_ee": analysis.ee_score,
+                    "pred_dp": analysis.dp_score,
+                    "pred_pa": analysis.pa_score,
+                    "pred_composite": analysis.composite_score,
+                    "true_band": _band(
+                        0.45 * r["latent_ee"] + 0.35 * r["latent_dp"] + 0.20 * r["latent_pa"]
+                    ),
+                    "pred_band": analysis.risk_band,
+                    "high_acuity": analysis.high_acuity_flag,
+                }
+            )
 
     # Metrics
     def _mae(a: list[float], b: list[float]) -> float:
@@ -93,6 +99,7 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
 
     # Persist CSV
     import csv
+
     keys = list(rows[0].keys())
     with open(out / "predictions.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=keys)
@@ -111,7 +118,8 @@ def run(corpus_path: str, output_dir: str, use_llm: bool) -> dict:
         ys = [r[pred_key] for r in rows]
         ax.scatter(xs, ys, alpha=0.3, s=10)
         ax.plot([0, 10], [0, 10], "k--", linewidth=1)
-        ax.set_xlim(0, 10); ax.set_ylim(0, 10)
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
         ax.set_xlabel(f"True {dim}")
         ax.set_ylabel(f"Predicted {dim}")
         ax.set_title(f"{dim} extraction (LLM={'on' if use_llm else 'off'})")

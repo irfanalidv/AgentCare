@@ -17,4 +17,3 @@ class ProviderFactory:
         if not settings.mistral_api_key:
             raise ValueError("MISTRAL_API_KEY not configured")
         return MistralLLM(api_key=settings.mistral_api_key, model=settings.mistral_model)
-

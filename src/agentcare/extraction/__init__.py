@@ -10,4 +10,3 @@ __all__ = [
     "BurnoutExtraction",
     "extract_burnout_fields",
 ]
-

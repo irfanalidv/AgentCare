@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
-from mistralai import Mistral
+try:  # mistralai >= 2 moved the client under ``mistralai.client``
+    from mistralai.client import Mistral
+except ImportError:  # mistralai 1.x
+    from mistralai import Mistral  # type: ignore[no-redef,attr-defined]
 
 
 class MistralLLM:
@@ -11,7 +15,9 @@ class MistralLLM:
         self._client = Mistral(api_key=api_key)
         self._model = model
 
-    def chat(self, *, messages: list[dict[str, Any]], temperature: float = 0.2, max_tokens: int = 800) -> str:
+    def chat(
+        self, *, messages: list[dict[str, Any]], temperature: float = 0.2, max_tokens: int = 800
+    ) -> str:
         resp = self._client.chat.complete(
             model=self._model,
             messages=messages,
@@ -20,9 +26,12 @@ class MistralLLM:
         )
         # SDK response is a Pydantic model; keep extraction defensive.
         try:
-            return resp.choices[0].message.content  # type: ignore[attr-defined]
+            content = resp.choices[0].message.content  # type: ignore[attr-defined]
         except Exception:
             return str(resp)
+        if isinstance(content, list):  # content chunks (newer SDKs / some models)
+            return "".join(getattr(c, "text", "") or "" for c in content)
+        return content or ""
 
     def chat_json(
         self,
@@ -48,10 +57,10 @@ def _coerce_json_object(text: str) -> dict[str, Any]:
     Best-effort JSON object parsing.
     Mistral often returns clean JSON; this trims common code fences.
     """
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-        cleaned = cleaned.replace("json", "", 1).strip()
+    cleaned = (text or "").strip()
+    fence = re.match(r"^```[a-zA-Z0-9_-]*\s*\n?(.*?)\n?```\s*$", cleaned, re.DOTALL)
+    if fence:
+        cleaned = fence.group(1).strip()
     # Try direct parse
     try:
         obj = json.loads(cleaned)
@@ -72,4 +81,3 @@ def _coerce_json_object(text: str) -> dict[str, Any]:
             pass
 
     raise ValueError("Model did not return a JSON object")
-

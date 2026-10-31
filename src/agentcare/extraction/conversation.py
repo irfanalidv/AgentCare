@@ -75,4 +75,3 @@ def extract_conversation_fields(transcript: str) -> ConversationExtraction:
         return ConversationExtraction.model_validate(data)
     except Exception:
         return ConversationExtraction()
-

@@ -68,12 +68,14 @@ def cohort_summary() -> dict[str, Any]:
     ee_sum = dp_sum = pa_sum = comp_sum = 0.0
     score_n = 0
 
-    for employee_id, entries in rows.items():
+    for entries in rows.values():
         if not isinstance(entries, list) or not entries:
             continue
         n_sessions_total += len(entries)
         latest = entries[-1]
-        band = str(latest.get("risk_band") or _classify_band(_coerce_float(latest.get("composite_score"))))
+        band = str(
+            latest.get("risk_band") or _classify_band(_coerce_float(latest.get("composite_score")))
+        )
         band_counts[band] += 1
         acuity = bool(latest.get("high_acuity_flag", False))
         if band == "high" or acuity:
@@ -127,16 +129,18 @@ def flagged_employees() -> dict[str, Any]:
         acuity = bool(latest.get("high_acuity_flag", False))
         if band != "high" and not acuity:
             continue
-        flagged.append({
-            "employee_id": employee_id,
-            "latest_composite": round(composite, 2),
-            "latest_band": band,
-            "high_acuity_flag": acuity,
-            "primary_stressor": latest.get("primary_stressor"),
-            "engagement_level": latest.get("engagement_level"),
-            "n_sessions": len(entries),
-            "latest_timestamp": latest.get("timestamp"),
-        })
+        flagged.append(
+            {
+                "employee_id": employee_id,
+                "latest_composite": round(composite, 2),
+                "latest_band": band,
+                "high_acuity_flag": acuity,
+                "primary_stressor": latest.get("primary_stressor"),
+                "engagement_level": latest.get("engagement_level"),
+                "n_sessions": len(entries),
+                "latest_timestamp": latest.get("timestamp"),
+            }
+        )
 
     flagged.sort(key=lambda r: (not r["high_acuity_flag"], -r["latest_composite"]))
     return {"n": len(flagged), "employees": flagged}
@@ -162,6 +166,7 @@ def employee_detail(employee_id: str) -> dict[str, Any]:
     # Recompute trend on the fly so the dashboard reflects the latest data
     try:
         from agentcare.analysis.trend import detect_trend
+
         trend = detect_trend(composites)
         trend_dict = {
             "n": trend.n,
@@ -199,12 +204,14 @@ def cohort_series(limit: int = 50) -> dict[str, Any]:
         if not isinstance(entries, list) or not entries:
             continue
         composites = [_coerce_float(e.get("composite_score")) for e in entries]
-        employees.append({
-            "employee_id": employee_id,
-            "composite_series": [round(c, 2) for c in composites],
-            "latest_composite": round(composites[-1], 2),
-            "n_sessions": len(entries),
-        })
+        employees.append(
+            {
+                "employee_id": employee_id,
+                "composite_series": [round(c, 2) for c in composites],
+                "latest_composite": round(composites[-1], 2),
+                "n_sessions": len(entries),
+            }
+        )
 
     employees.sort(key=lambda r: -r["latest_composite"])
     return {"n_total": len(employees), "limit": limit, "employees": employees[:limit]}

@@ -32,13 +32,17 @@ def test_crisis_signal_forces_high_acuity() -> None:
 
 
 def test_llm_score_fusion_overrides_sparse_regex() -> None:
-    result = analyze_burnout_context(transcript="Things are okay this week.", llm_ee=8.0, llm_dp=7.0, llm_pa=6.0)
+    result = analyze_burnout_context(
+        transcript="Things are okay this week.", llm_ee=8.0, llm_dp=7.0, llm_pa=6.0
+    )
     assert result.ee_score >= 5.0
     assert result.composite_score >= 5.0
 
 
 def test_low_signal_transcript_stays_low() -> None:
-    result = analyze_burnout_context(transcript="Workload is fine. Team is great. Slept well. Shipped two tickets.")
+    result = analyze_burnout_context(
+        transcript="Workload is fine. Team is great. Slept well. Shipped two tickets."
+    )
     assert result.risk_band == "low"
     assert result.high_acuity_flag is False
 

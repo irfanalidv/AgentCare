@@ -8,7 +8,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # Bolna (BOLNA_API_KEY or bolna_API)
-    bolna_api_key: str | None = Field(default=None, validation_alias=AliasChoices("BOLNA_API_KEY", "bolna_API"))
+    bolna_api_key: str | None = Field(
+        default=None, validation_alias=AliasChoices("BOLNA_API_KEY", "bolna_API")
+    )
     bolna_base_url: str = "https://api.bolna.ai"
     bolna_agent_id: str | None = Field(
         default=None, validation_alias=AliasChoices("BOLNA_AGENT_ID", "bolna_agent_id")
@@ -33,7 +35,9 @@ class Settings(BaseSettings):
     agentcare_mock_ehr_url: str = "http://localhost:8020"
 
     # Cal.com (CAL_API_KEY or cal_API)
-    cal_api_key: str | None = Field(default=None, validation_alias=AliasChoices("CAL_API_KEY", "cal_API"))
+    cal_api_key: str | None = Field(
+        default=None, validation_alias=AliasChoices("CAL_API_KEY", "cal_API")
+    )
     cal_event_type_id: str | None = Field(
         default=None, validation_alias=AliasChoices("CAL_EVENT_TYPE_ID", "cal_event_type_id")
     )
@@ -67,7 +71,9 @@ class Settings(BaseSettings):
             "direct_connecting_string",
         ),
     )
-    supabase_url: str | None = Field(default=None, validation_alias=AliasChoices("SUPABASE_URL", "project_url"))
+    supabase_url: str | None = Field(
+        default=None, validation_alias=AliasChoices("SUPABASE_URL", "project_url")
+    )
     supabase_publishable_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "publishable_key"),
@@ -75,4 +81,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

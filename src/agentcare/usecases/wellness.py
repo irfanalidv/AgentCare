@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from agentcare.analysis.burnout import BurnoutAnalysis, analyze_burnout_context
 from agentcare.analysis.trend import TrendResult, detect_trend
@@ -49,7 +50,9 @@ def _execution_key(execution: dict[str, Any]) -> str | None:
     return str(execution.get("id") or execution.get("execution_id") or "").strip() or None
 
 
-def _employee_id(execution: dict[str, Any], extraction: BurnoutExtraction | None = None) -> str | None:
+def _employee_id(
+    execution: dict[str, Any], extraction: BurnoutExtraction | None = None
+) -> str | None:
     candidates = [
         execution.get("employee_id"),
         execution.get("customer_id"),
@@ -122,7 +125,11 @@ def process_wellness_execution(
     history: list[float] = []
     if employee_id:
         try:
-            history = list(history_loader(employee_id) if history_loader else wired.store.load_scores(employee_id))
+            history = list(
+                history_loader(employee_id)
+                if history_loader
+                else wired.store.load_scores(employee_id)
+            )
         except Exception as exc:
             notes.append(f"history_loader_error:{exc}")
 

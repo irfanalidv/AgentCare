@@ -19,11 +19,33 @@ class DoctorProfile(BaseModel):
 
 
 DEFAULT_DOCTORS: list[DoctorProfile] = [
-    DoctorProfile(doctor_id="dr_001", name="Dr. Priya Menon", specialty="General Medicine", languages=["english", "hindi"]),
-    DoctorProfile(doctor_id="dr_002", name="Dr. Arjun Shah", specialty="Cardiology", languages=["english", "hindi"]),
-    DoctorProfile(doctor_id="dr_003", name="Dr. Meera Kulkarni", specialty="Dermatology", languages=["english", "hindi"]),
-    DoctorProfile(doctor_id="dr_004", name="Dr. Rahul Verma", specialty="Orthopedics", languages=["english", "hindi"]),
-    DoctorProfile(doctor_id="dr_005", name="Dr. Neha Iyer", specialty="ENT", languages=["english", "hindi"]),
+    DoctorProfile(
+        doctor_id="dr_001",
+        name="Dr. Priya Menon",
+        specialty="General Medicine",
+        languages=["english", "hindi"],
+    ),
+    DoctorProfile(
+        doctor_id="dr_002",
+        name="Dr. Arjun Shah",
+        specialty="Cardiology",
+        languages=["english", "hindi"],
+    ),
+    DoctorProfile(
+        doctor_id="dr_003",
+        name="Dr. Meera Kulkarni",
+        specialty="Dermatology",
+        languages=["english", "hindi"],
+    ),
+    DoctorProfile(
+        doctor_id="dr_004",
+        name="Dr. Rahul Verma",
+        specialty="Orthopedics",
+        languages=["english", "hindi"],
+    ),
+    DoctorProfile(
+        doctor_id="dr_005", name="Dr. Neha Iyer", specialty="ENT", languages=["english", "hindi"]
+    ),
     DoctorProfile(
         doctor_id="dr_006",
         name="Dr. Kavya Rao",

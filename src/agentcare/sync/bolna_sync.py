@@ -38,7 +38,9 @@ def sync_bolna_executions(
         automation_processed = set()
 
     with BolnaClient(api_key=settings.bolna_api_key, base_url=settings.bolna_base_url) as bolna:
-        items = bolna.get_all_executions(agent_id=agent_id, page_size=page_size, max_pages=max_pages)
+        items = bolna.get_all_executions(
+            agent_id=agent_id, page_size=page_size, max_pages=max_pages
+        )
         rows = [x.model_dump() for x in items]
 
     for ex in rows:
@@ -67,7 +69,8 @@ def sync_bolna_executions(
         "executions": rows,
     }
     automation_processed_path.parent.mkdir(parents=True, exist_ok=True)
-    automation_processed_path.write_text(json.dumps(sorted(list(automation_processed)), indent=2), "utf-8")
+    automation_processed_path.write_text(
+        json.dumps(sorted(list(automation_processed)), indent=2), "utf-8"
+    )
     out_path.write_text(json.dumps(payload, indent=2, default=str), "utf-8")
     return {"ok": True, **payload, "out_path": str(out_path)}
-

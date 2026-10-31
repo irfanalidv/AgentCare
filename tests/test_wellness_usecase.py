@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from agentcare.extraction.burnout import BurnoutExtraction
-from agentcare.usecases.execution_router import process_agentcare_execution, resolve_execution_workflow
+from agentcare.usecases.execution_router import (
+    process_agentcare_execution,
+    resolve_execution_workflow,
+)
 from agentcare.usecases.wellness import process_wellness_execution
 from agentcare.workflows.registry import WORKFLOW_REGISTRY
 
@@ -84,7 +87,9 @@ def test_wellness_pipeline_low_risk_auto_closes() -> None:
 
 
 def test_wellness_pipeline_empty_transcript() -> None:
-    result = process_wellness_execution({"id": "exec_003", "employee_id": "emp_003", "transcript": ""})
+    result = process_wellness_execution(
+        {"id": "exec_003", "employee_id": "emp_003", "transcript": ""}
+    )
     assert result.ok is False
     assert "empty_transcript" in result.notes
 
@@ -94,8 +99,12 @@ def test_wellness_workflow_is_registered() -> None:
 
 
 def test_execution_router_selects_wellness_workflow() -> None:
-    payload = {"workflow": "wellness_checkin", "employee_id": "emp_004", "transcript": "I feel exhausted."}
+    payload = {
+        "workflow": "wellness_checkin",
+        "employee_id": "emp_004",
+        "transcript": "I feel exhausted.",
+    }
     assert resolve_execution_workflow(payload) == "wellness_checkin"
     result = process_agentcare_execution(payload, source="test", workflow="wellness_checkin")
     assert result.ok is True
-    assert getattr(result, "employee_id") == "emp_004"
+    assert result.employee_id == "emp_004"

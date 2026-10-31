@@ -10,12 +10,18 @@ from agentcare.settings import settings
 
 
 def _connect():
-    if not settings.database_url or "[YOUR-" in settings.database_url or "YOUR-PASSWORD" in settings.database_url:
+    if (
+        not settings.database_url
+        or "[YOUR-" in settings.database_url
+        or "YOUR-PASSWORD" in settings.database_url
+    ):
         raise ValueError("DATABASE_URL/SUPABASE_DB_URL is not configured with a real value")
     try:
         import psycopg
     except Exception as e:
-        raise RuntimeError("psycopg is required for database-backed analytics. Install agentcare[postgres].") from e
+        raise RuntimeError(
+            "psycopg is required for database-backed analytics. Install agentcare[postgres]."
+        ) from e
     return psycopg.connect(settings.database_url)
 
 
@@ -41,14 +47,16 @@ def _load_json_events() -> list[dict[str, Any]]:
     return []
 
 
-def _filter_rows(rows: list[dict[str, Any]], *, from_ts: str | None, to_ts: str | None) -> list[dict[str, Any]]:
+def _filter_rows(
+    rows: list[dict[str, Any]], *, from_ts: str | None, to_ts: str | None
+) -> list[dict[str, Any]]:
     f = _parse_ts(from_ts)
     t = _parse_ts(to_ts)
     out: list[dict[str, Any]] = []
     for r in rows:
         if _is_synthetic_event(r):
             continue
-        created = _parse_ts(str((r.get("created_at") or r.get("updated_at") or "")))
+        created = _parse_ts(str(r.get("created_at") or r.get("updated_at") or ""))
         if created is None:
             created = datetime.now(timezone.utc)
         if f and created < f:
@@ -237,11 +245,15 @@ def get_call_detail(execution_id: str) -> dict[str, Any] | None:
     }
 
 
-def get_overview_fallback(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[str, Any]:
+def get_overview_fallback(
+    *, from_ts: str | None = None, to_ts: str | None = None
+) -> dict[str, Any]:
     rows = _filter_rows(_load_json_events(), from_ts=from_ts, to_ts=to_ts)
     total = len(rows)
     completed = sum(1 for r in rows if r.get("status") == "completed")
-    failed = sum(1 for r in rows if r.get("status") in {"no-answer", "busy", "failed", "error", "canceled"})
+    failed = sum(
+        1 for r in rows if r.get("status") in {"no-answer", "busy", "failed", "error", "canceled"}
+    )
     durations = [float(r.get("conversation_time") or 0.0) for r in rows]
     costs = [float(r.get("total_cost") or 0.0) for r in rows]
     return {
@@ -265,7 +277,9 @@ def get_calls_timeseries_fallback(
     rows = _filter_rows(_load_json_events(), from_ts=from_ts, to_ts=to_ts)
     buckets: dict[str, dict[str, Any]] = {}
     for r in rows:
-        dt = _parse_ts(str(r.get("created_at") or r.get("updated_at") or "")) or datetime.now(timezone.utc)
+        dt = _parse_ts(str(r.get("created_at") or r.get("updated_at") or "")) or datetime.now(
+            timezone.utc
+        )
         if interval == "hour":
             key = dt.strftime("%Y-%m-%d %H:00")
         elif interval == "week":
@@ -273,7 +287,9 @@ def get_calls_timeseries_fallback(
             key = f"{year}-W{week:02d}"
         else:
             key = dt.strftime("%Y-%m-%d")
-        b = buckets.setdefault(key, {"bucket": key, "total_calls": 0, "completed_calls": 0, "total_cost": 0.0})
+        b = buckets.setdefault(
+            key, {"bucket": key, "total_calls": 0, "completed_calls": 0, "total_cost": 0.0}
+        )
         b["total_calls"] += 1
         if r.get("status") == "completed":
             b["completed_calls"] += 1
@@ -296,7 +312,9 @@ def get_funnel_fallback(*, from_ts: str | None = None, to_ts: str | None = None)
     }
 
 
-def get_customer_cohorts_fallback(*, from_ts: str | None = None, to_ts: str | None = None) -> dict[str, Any]:
+def get_customer_cohorts_fallback(
+    *, from_ts: str | None = None, to_ts: str | None = None
+) -> dict[str, Any]:
     rows = _filter_rows(_load_json_events(), from_ts=from_ts, to_ts=to_ts)
     counts: dict[str, int] = {}
     for r in rows:
@@ -344,4 +362,3 @@ def get_call_detail_fallback(execution_id: str) -> dict[str, Any] | None:
             "source": "json_fallback",
         }
     return None
-

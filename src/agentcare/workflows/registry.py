@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from agentcare.settings import settings
 from agentcare.templates import build_frontdesk_agent_spec
@@ -122,4 +123,3 @@ def list_workflows_metadata() -> list[dict[str, Any]]:
         }
         for wf in sorted(WORKFLOW_REGISTRY.values(), key=lambda item: item.name)
     ]
-

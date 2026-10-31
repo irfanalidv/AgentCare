@@ -40,6 +40,27 @@ extract_app = typer.Typer(add_completion=False, help="Built-in transcript extrac
 app.add_typer(extract_app, name="extract")
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from agentcare import __version__
+
+        print(f"agentcare {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _root(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show the installed agentcare version and exit.",
+    ),
+) -> None:
+    """AgentCare CLI (Bolna + Mistral + eval)."""
+
+
 def _print_json(data: Any) -> None:
     print(json.dumps(data, indent=2, default=str))
 
@@ -106,7 +127,9 @@ def doctor() -> None:
         "customer_store_backend": settings.customer_store_backend,
         "database_url_configured": _is_non_placeholder(settings.database_url),
         "supabase_url_configured": _is_non_placeholder(settings.supabase_url),
-        "supabase_publishable_key_configured": _is_non_placeholder(settings.supabase_publishable_key),
+        "supabase_publishable_key_configured": _is_non_placeholder(
+            settings.supabase_publishable_key
+        ),
         "agentcare_llm_gateway_url": settings.agentcare_llm_gateway_url,
         "agentcare_mock_ehr_url": settings.agentcare_mock_ehr_url,
     }
@@ -114,7 +137,9 @@ def doctor() -> None:
 
 
 @app.command()
-def init_artifacts(dir: Path = typer.Option(Path("artifacts"), "--dir", help="Artifacts folder")) -> None:
+def init_artifacts(
+    dir: Path = typer.Option(Path("artifacts"), "--dir", help="Artifacts folder"),
+) -> None:
     """Create local artifacts folder."""
     dir.mkdir(parents=True, exist_ok=True)
     print(f"[green]ok[/green] created `{dir}`")
@@ -124,6 +149,7 @@ def _bolna() -> BolnaClient:
     if not settings.bolna_api_key:
         raise typer.BadParameter("Missing BOLNA_API_KEY in environment/.env")
     return BolnaClient(api_key=settings.bolna_api_key, base_url=settings.bolna_base_url)
+
 
 def _mistral() -> MistralLLM:
     if not settings.mistral_api_key:
@@ -140,7 +166,9 @@ def bolna_voices() -> None:
 
 
 @bolna_app.command("execution")
-def bolna_execution(execution_id: str = typer.Argument(..., help="Bolna execution_id (UUID)")) -> None:
+def bolna_execution(
+    execution_id: str = typer.Argument(..., help="Bolna execution_id (UUID)"),
+) -> None:
     """Fetch a single call execution by id."""
     with _bolna() as c:
         ex = c.get_execution(execution_id=execution_id)
@@ -149,20 +177,28 @@ def bolna_execution(execution_id: str = typer.Argument(..., help="Bolna executio
 
 @bolna_app.command("call")
 def bolna_call(
-    agent_id: str | None = typer.Option(None, "--agent-id", help="Bolna agent_id (UUID); defaults to BOLNA_AGENT_ID"),
+    agent_id: str | None = typer.Option(
+        None, "--agent-id", help="Bolna agent_id (UUID); defaults to BOLNA_AGENT_ID"
+    ),
     to: str = typer.Option(..., "--to", help="Recipient phone number in E.164 format"),
     from_phone: str | None = typer.Option(
         None,
         "--from",
         help="Sender phone number in E.164 format; defaults to BOLNA_FROM_PHONE_NUMBER if configured",
     ),
-    scheduled_at: str | None = typer.Option(None, "--scheduled-at", help="ISO8601 datetime with timezone"),
-    user_data_json: str | None = typer.Option(None, "--user-data-json", help="JSON object for dynamic variables"),
+    scheduled_at: str | None = typer.Option(
+        None, "--scheduled-at", help="ISO8601 datetime with timezone"
+    ),
+    user_data_json: str | None = typer.Option(
+        None, "--user-data-json", help="JSON object for dynamic variables"
+    ),
 ) -> None:
     """Initiate an outbound call."""
     resolved_agent_id = agent_id or settings.bolna_agent_id
     if not resolved_agent_id:
-        raise typer.BadParameter("Missing --agent-id and BOLNA_AGENT_ID/bolna_agent_id is not configured")
+        raise typer.BadParameter(
+            "Missing --agent-id and BOLNA_AGENT_ID/bolna_agent_id is not configured"
+        )
     user_data = json.loads(user_data_json) if user_data_json else None
     resolved_from_phone = from_phone or settings.bolna_from_phone_number
     with _bolna() as c:
@@ -178,20 +214,26 @@ def bolna_call(
 
 @bolna_app.command("create-agent")
 def bolna_create_agent(
-    spec_path: Path = typer.Argument(..., exists=True, dir_okay=False, help="JSON spec with agent_config + agent_prompts"),
+    spec_path: Path = typer.Argument(
+        ..., exists=True, dir_okay=False, help="JSON spec with agent_config + agent_prompts"
+    ),
 ) -> None:
     """Create an agent from a JSON spec file."""
     spec = json.loads(spec_path.read_text("utf-8"))
     if "agent_config" not in spec or "agent_prompts" not in spec:
         raise typer.BadParameter("Spec JSON must contain keys: agent_config, agent_prompts")
     with _bolna() as c:
-        status = c.create_agent_v2(agent_config=spec["agent_config"], agent_prompts=spec["agent_prompts"])
+        status = c.create_agent_v2(
+            agent_config=spec["agent_config"], agent_prompts=spec["agent_prompts"]
+        )
     _print_json(status.model_dump())
 
 
 @bolna_app.command("add-custom-model")
 def bolna_add_custom_model(
-    name: str = typer.Option("AgentCare Mistral Gateway", "--name", help="Human-readable model name"),
+    name: str = typer.Option(
+        "AgentCare Mistral Gateway", "--name", help="Human-readable model name"
+    ),
     url: str = typer.Option(None, "--url", help="OpenAI-compatible base URL (ending in /v1)"),
 ) -> None:
     """Register a custom LLM endpoint in Bolna (OpenAI-compatible)."""
@@ -218,7 +260,9 @@ def bolna_sync_executions(
     """Fetch paginated executions and process customer memory updates."""
     resolved_agent_id = agent_id or settings.bolna_agent_id
     if not resolved_agent_id:
-        raise typer.BadParameter("Missing --agent-id and BOLNA_AGENT_ID/bolna_agent_id is not configured")
+        raise typer.BadParameter(
+            "Missing --agent-id and BOLNA_AGENT_ID/bolna_agent_id is not configured"
+        )
     result = sync_bolna_executions(
         agent_id=resolved_agent_id,
         page_size=page_size,
@@ -241,7 +285,9 @@ def bolna_kb_create_url(url: str = typer.Argument(..., help="URL to ingest")) ->
 
 
 @kb_app.command("create-pdf")
-def bolna_kb_create_pdf(pdf_path: Path = typer.Argument(..., exists=True, dir_okay=False, help="PDF file path")) -> None:
+def bolna_kb_create_pdf(
+    pdf_path: Path = typer.Argument(..., exists=True, dir_okay=False, help="PDF file path"),
+) -> None:
     with _bolna() as c:
         out = c.create_knowledgebase_from_pdf(pdf_path=pdf_path)
     _print_json(out.model_dump())
@@ -270,7 +316,9 @@ def bolna_kb_delete(rag_id: str = typer.Argument(..., help="Knowledgebase rag_id
 
 @eval_app.command("transcript")
 def eval_transcript(
-    path: Path = typer.Argument(..., exists=True, dir_okay=False, help="Text file containing transcript"),
+    path: Path = typer.Argument(
+        ..., exists=True, dir_okay=False, help="Text file containing transcript"
+    ),
 ) -> None:
     """Evaluate a transcript file with Mistral."""
     transcript = path.read_text("utf-8")
@@ -289,20 +337,26 @@ def eval_execution(
     if not ex.transcript:
         raise typer.BadParameter("Execution has no transcript yet (or call not completed).")
     llm = _mistral()
-    result = evaluate_transcript(llm=llm, transcript=ex.transcript, context={"execution_id": execution_id})
+    result = evaluate_transcript(
+        llm=llm, transcript=ex.transcript, context={"execution_id": execution_id}
+    )
     _print_json({"execution": ex.model_dump(), "eval": result.model_dump()})
 
 
 @tpl_app.command("frontdesk")
 def templates_frontdesk(
-    out: Path = typer.Option(Path("frontdesk_agent.json"), "--out", help="Where to write the JSON spec"),
+    out: Path = typer.Option(
+        Path("frontdesk_agent.json"), "--out", help="Where to write the JSON spec"
+    ),
     agent_name: str = typer.Option("AgentCare Front Desk", "--agent-name"),
     welcome: str = typer.Option(
         "Hi! Thanks for calling AgentCare. How can I help you today?",
         "--welcome",
         help="Agent welcome message",
     ),
-    webhook_url: str | None = typer.Option(None, "--webhook-url", help="Bolna webhook URL (optional)"),
+    webhook_url: str | None = typer.Option(
+        None, "--webhook-url", help="Bolna webhook URL (optional)"
+    ),
     calendar_tool_mode: str = typer.Option(
         "auto",
         "--calendar-tool-mode",
@@ -366,7 +420,9 @@ def customer_upsert(
 
 @webhook_app.command("simulate")
 def webhook_simulate(
-    url: str = typer.Option("http://localhost:8030/bolna/execution", "--url", help="Webhook endpoint URL"),
+    url: str = typer.Option(
+        "http://localhost:8030/bolna/execution", "--url", help="Webhook endpoint URL"
+    ),
     execution_id: str = typer.Option("exec_demo_001", "--execution-id"),
     customer_name: str = typer.Option("Ava Patel", "--customer-name"),
     customer_email: str = typer.Option("ava@example.com", "--customer-email"),
@@ -405,7 +461,9 @@ def webhook_simulate(
 def framework_init_db() -> None:
     """Initialize postgres schema for customer memory + idempotency."""
     if not settings.database_url:
-        raise typer.BadParameter("Set DATABASE_URL/SUPABASE_DB_URL (direct postgres connection string)")
+        raise typer.BadParameter(
+            "Set DATABASE_URL/SUPABASE_DB_URL (direct postgres connection string)"
+        )
     init_postgres_schema(settings.database_url)
     print("[green]ok[/green] initialized postgres schema")
 
@@ -450,9 +508,13 @@ def framework_create_agent(
 def framework_process_execution(
     execution_json: Path = typer.Option(..., "--execution-json", exists=True, dir_okay=False),
     source: str = typer.Option("manual", "--source"),
-    workflow: str | None = typer.Option(None, "--workflow", help="Workflow override, e.g. wellness_checkin"),
+    workflow: str | None = typer.Option(
+        None, "--workflow", help="Workflow override, e.g. wellness_checkin"
+    ),
     automate_actions: bool = typer.Option(True, "--automate-actions/--no-automate-actions"),
-    enforce_idempotency: bool = typer.Option(False, "--enforce-idempotency/--no-enforce-idempotency"),
+    enforce_idempotency: bool = typer.Option(
+        False, "--enforce-idempotency/--no-enforce-idempotency"
+    ),
 ) -> None:
     """
     Process one execution payload through the reusable frontdesk pipeline.
@@ -569,4 +631,3 @@ def extract_transcript(
 
 def main() -> None:
     app()
-

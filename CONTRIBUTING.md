@@ -18,6 +18,8 @@ pip install -e ".[web,postgres,email,semantic]"
 ## Quality checks
 
 ```bash
+ruff check .
+ruff format --check .
 python3 -m compileall src services
 pytest -q
 python3 -m build

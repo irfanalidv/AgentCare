@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.3.0] - 2026-10-31
+
+### Added
+
+- `agentcare --version`.
+- `py.typed` marker (`Typing :: Typed`).
+- Tests for `MistralLLM` / JSON coercion (SDK mocked), semantic customer lookup (ragfallback
+  mocked), and the version flag.
+- Ruff lint + format checks; CI now runs on Python 3.10–3.13.
+- SECURITY.md, CODE_OF_CONDUCT.md, issue/PR templates, Dependabot, CITATION.cff.
+- README: offline library-usage example and per-extra install commands.
+
+### Changed
+
+- **Python 3.10 is now supported** (`requires-python >= 3.10`; was 3.11+), 3.13 added.
+- `mistralai` upper pin removed: `MistralLLM` works with `mistralai` 1.x and 2.x+ (where
+  `Mistral` moved to `mistralai.client`).
+- `semantic` extra now installs `ragfallback[huggingface,faiss]`, which the vector lookup needs.
+- Packaging: `setuptools>=77`, PEP 639 license metadata, author metadata, Changelog URL,
+  `ruff` and `langchain-core` (for semantic lookup tests) in the `dev` extra.
+- README quick start clarifies that `agentcare up` runs from a repository clone (the services
+  and scripts it launches are not part of the wheel). Image links are absolute so they render on PyPI.
+- Publish workflow: `skip-existing: true`.
+
+### Fixed
+
+- Semantic customer lookup always fell back to lexical matching on LangChain 1.x because it
+  imported `langchain.docstore` (removed); it now uses `langchain_core.documents`.
+- `_coerce_json_object` corrupted fenced JSON whose body contained the word "json" (it removed
+  the first occurrence anywhere); code fences are now stripped with a proper pattern.
+- `MistralLLM.chat` returns text when the SDK returns content chunks instead of a string.
+
 ## [0.2.1] - 2026-04-26
 
 ### Changed

@@ -19,7 +19,9 @@ class TranscriptEval(BaseModel):
     brevity_score_0_to_10: int = Field(ge=0, le=10)
     next_best_action_score_0_to_10: int = Field(ge=0, le=10)
 
-    safety_flags: list[Literal["phi_leak", "medical_advice", "rude_tone", "other"]] = Field(default_factory=list)
+    safety_flags: list[Literal["phi_leak", "medical_advice", "rude_tone", "other"]] = Field(
+        default_factory=list
+    )
     safety_notes: str | None = None
 
     issues: list[str] = Field(default_factory=list)
@@ -60,4 +62,3 @@ def evaluate_transcript(
     }
     out = llm.chat_json(system=EVAL_SYSTEM_PROMPT, user=json.dumps(user, ensure_ascii=False))
     return TranscriptEval.model_validate(out)
-
