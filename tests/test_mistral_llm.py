@@ -30,6 +30,7 @@ class _FakeClient:
 
 def _llm(monkeypatch, content) -> tuple[MistralLLM, _FakeClient]:
     fake = _FakeClient(content)
+
     def factory(api_key, **kwargs):
         fake.init_kwargs = kwargs
         return fake
@@ -86,7 +87,7 @@ def test_cli_version_flag():
 
 
 def test_client_gets_a_timeout(monkeypatch):
-    llm, fake = _llm(monkeypatch, "x")
+    _llm_obj, fake = _llm(monkeypatch, "x")
     assert fake.init_kwargs == {"timeout_ms": 30_000}
 
 
